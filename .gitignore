@@ -1,0 +1,10 @@
+node_modules/
+.astroncode-runtime/
+.env.astroncode
+.env
+.env.local
+dist/
+coverage/
+*.log
+Thumbs.db
+.DS_Store

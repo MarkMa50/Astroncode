@@ -1,0 +1,38 @@
+{
+  "name": "atroncode",
+  "version": "1.0.10",
+  "bin": {
+    "atroncode": "scripts/start.mjs",
+    "astroncode": "scripts/start.mjs",
+    "astron": "scripts/start.mjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "author": "Atroncode",
+  "license": "SEE LICENSE IN README.md",
+  "description": "Atroncode terminal coding system with a swappable model provider launch layer.",
+  "homepage": "https://github.com/atroncode/atroncode",
+  "bugs": {
+    "url": "https://github.com/atroncode/atroncode/issues"
+  },
+  "scripts": {
+    "test": "node --test ./tests/astron-env.test.mjs ./tests/local-command-overrides.test.mjs ./tests/runtime-branding.test.mjs ./tests/runtime-guards.test.mjs ./tests/runtime-exit-normalizer.test.mjs",
+    "prepare": "node -e \"if (!process.env.AUTHORIZED) { console.error('ERROR: Direct publishing is not allowed.\\nPlease see the release workflow documentation to publish this package.'); process.exit(1); }\"",
+    "test:astron": "node --test ./tests/astron-env.test.mjs",
+    "test:runtime": "node --test ./tests/runtime-branding.test.mjs ./tests/runtime-guards.test.mjs"
+  },
+  "dependencies": {},
+  "optionalDependencies": {
+    "@img/sharp-darwin-arm64": "^0.34.2",
+    "@img/sharp-darwin-x64": "^0.34.2",
+    "@img/sharp-linux-arm": "^0.34.2",
+    "@img/sharp-linux-arm64": "^0.34.2",
+    "@img/sharp-linux-x64": "^0.34.2",
+    "@img/sharp-linuxmusl-arm64": "^0.34.2",
+    "@img/sharp-linuxmusl-x64": "^0.34.2",
+    "@img/sharp-win32-arm64": "^0.34.2",
+    "@img/sharp-win32-x64": "^0.34.2"
+  }
+}
