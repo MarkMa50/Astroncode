@@ -1,3 +1,4 @@
+import { additionalBrandingRules, additionalBrandingPatterns, clawdReplacementRules, projectGuidanceRules, projectGuidancePatterns, modelNoticeRules, modelNoticePatterns, subscriptionRules, consoleRules, extendedUrlRules, githubRules, modelAliasRules, extendedPatterns, moreModelRules, moreModelPatterns, fixRules, fixPatterns } from './branding-extension.mjs';
 import { createHash } from 'node:crypto'
 import { access, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -11,20 +12,50 @@ import {
 const LOCAL_BUILD_LABEL = `local ${ASTRONCODE_NAME} build`
 const BROWSER_CONTROL_NAME = `${ASTRONCODE_NAME} Browser Control`
 const DESKTOP_NAME = `${ASTRONCODE_NAME} Desktop`
-const WELCOME_BORDER = '                     [=------------------=]             '
-const WELCOME_HEADER = '                     | >_ ATRONCODE shell |             '
-const WELCOME_TAGLINE = '                     |  pixel terminal   |             '
-const WELCOME_FACE = '                     |    [o]      [o]   |             '
-const WELCOME_BLANK = '                                                          '
+const WORDMARK_LINES = [
+  '╔═╗╔═╗╔╦╗╦═╗╔═╗╔╗╔',
+  '╠═╣╚═╗ ║ ╠╦╝║ ║║║║',
+  '╩ ╩╚═╝ ╩ ╩╚═╚═╝╝╚╝',
+  '     ╔═╗╔═╗╔╦╗╔═╗',
+  '     ║  ║ ║ ║║║╣ ',
+  '     ╚═╝╚═╝═╩╝╚═╝',
+]
+const COMBINED_WELCOME_LINES = [...WORDMARK_LINES]
+const WELCOME_LINE_1 = COMBINED_WELCOME_LINES[0]
+const WELCOME_LINE_2 = COMBINED_WELCOME_LINES[1]
+const WELCOME_LINE_3 = COMBINED_WELCOME_LINES[2]
+const WELCOME_LINE_4 = COMBINED_WELCOME_LINES[3]
+const WELCOME_LINE_5 = COMBINED_WELCOME_LINES[4]
+const WELCOME_LINE_6 = ' '.repeat(WORDMARK_LINES[0].length)
+const WELCOME_BLANK = ' '.repeat(WORDMARK_LINES[0].length)
+function createRuntimeWelcomeArt() {
+  const artNodes = WORDMARK_LINES.map((line, index) =>
+    `bz.createElement(k,{color:${index < 3 ? '"claude"' : index === 3 ? '"claudeShimmer"' : '"clawd_body"'},bold:!0},${JSON.stringify(line)})`,
+  ).join(',')
+
+  return `function qJ6(q){let K=z6(1),_;if(K[0]===Symbol.for("react.memo_cache_sentinel"))_=bz.createElement(u,{flexDirection:"column",alignItems:"center"},${artNodes}),K[0]=_;else _=K[0];return _}`
+}
+
+const RUNTIME_WELCOME_ART = createRuntimeWelcomeArt()
+const RUNTIME_WELCOME_EMPTY = 'function FF8(q){return""}'
+const RUNTIME_NOTICE_DISABLED = 'async function lcY(){return null}'
+const EARLY_INPUT_WINDOWS_GUARD_FROM =
+  'if(!process.stdin.isTTY||jT6||process.argv.includes("-p")||process.argv.includes("--print"))return;'
+const EARLY_INPUT_WINDOWS_GUARD_TO =
+  'if(!process.stdin.isTTY||process.platform==="win32"||jT6||process.argv.includes("-p")||process.argv.includes("--print"))return;'
 
 export const brandingReplacements = [
+  [EARLY_INPUT_WINDOWS_GUARD_FROM, EARLY_INPUT_WINDOWS_GUARD_TO],
   ['2.1.88', ASTRONCODE_VERSION],
   ['Welcome to Claude Code', `Welcome to ${ASTRONCODE_NAME}`],
   ['Welcome to AstronCode', `Welcome to ${ASTRONCODE_NAME}`],
+  ['Welcome to Atroncode', `Welcome to ${ASTRONCODE_NAME}`],
   ['K.name("claude")', `K.name("${ASTRONCODE_COMMAND}")`],
   ['K.name("astroncode")', `K.name("${ASTRONCODE_COMMAND}")`],
+  ['K.name("atroncode")', `K.name("${ASTRONCODE_COMMAND}")`],
   ['process.title="claude"', `process.title="${ASTRONCODE_COMMAND}"`],
   ['process.title="astroncode"', `process.title="${ASTRONCODE_COMMAND}"`],
+  ['process.title="atroncode"', `process.title="${ASTRONCODE_COMMAND}"`],
   ['Usage: claude [options] [command] [prompt]', `Usage: ${ASTRONCODE_COMMAND} [options] [command] [prompt]`],
   ['Usage: astroncode [options] [command] [prompt]', `Usage: ${ASTRONCODE_COMMAND} [options] [command] [prompt]`],
   ['Usage: claude ssh <user@host | ssh-config-alias> [dir]', `Usage: ${ASTRONCODE_COMMAND} ssh <user@host | ssh-config-alias> [dir]`],
@@ -90,17 +121,24 @@ export const brandingReplacements = [
   ['Disable AstronCode in Chrome integration', `Chrome integration (disabled in ${LOCAL_BUILD_LABEL})`],
   ['Enable Atroncode in Chrome integration', `Chrome integration (disabled in ${LOCAL_BUILD_LABEL})`],
   ['Disable Atroncode in Chrome integration', `Chrome integration (disabled in ${LOCAL_BUILD_LABEL})`],
+  ['Enable Astroncode in Chrome integration', `Chrome integration (disabled in ${LOCAL_BUILD_LABEL})`],
+  ['Disable Astroncode in Chrome integration', `Chrome integration (disabled in ${LOCAL_BUILD_LABEL})`],
   ['Check the health of your Claude Code auto-updater.', `Run local ${ASTRONCODE_NAME} diagnostics for provider config and runtime health.`],
   ['Check the health of your AstronCode auto-updater.', `Run local ${ASTRONCODE_NAME} diagnostics for provider config and runtime health.`],
   ['Check for updates and install if available', `Show the current ${ASTRONCODE_NAME} version and local update guidance.`],
   ['Updater health command (disabled in local AstronCode build).', `Run local ${ASTRONCODE_NAME} diagnostics for provider config and runtime health.`],
   ['Updater health command (disabled in local Atroncode build).', `Run local ${ASTRONCODE_NAME} diagnostics for provider config and runtime health.`],
+  ['Updater health command (disabled in local Astroncode build).', `Run local ${ASTRONCODE_NAME} diagnostics for provider config and runtime health.`],
   [
     'Install command (disabled in local AstronCode build; upstream-only). Use [target] to specify version (stable, latest, or specific version)',
     `Show local install status for this ${ASTRONCODE_NAME} build. Use [target] to inspect the requested target.`,
   ],
   [
     'Install command (disabled in local Atroncode build; upstream-only). Use [target] to specify version (stable, latest, or specific version)',
+    `Show local install status for this ${ASTRONCODE_NAME} build. Use [target] to inspect the requested target.`,
+  ],
+  [
+    'Install command (disabled in local Astroncode build; upstream-only). Use [target] to specify version (stable, latest, or specific version)',
     `Show local install status for this ${ASTRONCODE_NAME} build. Use [target] to inspect the requested target.`,
   ],
   [
@@ -142,25 +180,29 @@ export const brandingReplacements = [
   ['Unable to fetch latest astroncode internal commits', `Unable to fetch latest ${ASTRONCODE_NAME} internal commits`],
   ['Share Claude Code with friends', `Share ${ASTRONCODE_NAME} with friends`],
   ['Share AstronCode with friends', `Share ${ASTRONCODE_NAME} with friends`],
+  ['Share Atroncode with friends', `Share ${ASTRONCODE_NAME} with friends`],
+  ['Share Astroncode with friends', `Share ${ASTRONCODE_NAME} with friends`],
   ['Diagnose and verify your Claude Code installation and settings', `Diagnose and verify your ${ASTRONCODE_NAME} installation and settings`],
   ['Submit feedback about Claude Code', `Submit feedback about ${ASTRONCODE_NAME}`],
   ['Switch Anthropic accounts', 'Switch local provider accounts'],
   ['Sign in with your Anthropic account', 'Configure local provider credentials'],
   ['Sign out from your Anthropic account', 'Remove locally stored provider credentials'],
   ['Successfully removed your local Atroncode provider credentials.', `Successfully removed your local ${ASTRONCODE_NAME} provider credentials.`],
+  ['Successfully removed your local Astroncode provider credentials.', `Successfully removed your local ${ASTRONCODE_NAME} provider credentials.`],
   ['Add an MCP server to Claude Code.', `Add an MCP server to ${ASTRONCODE_NAME}.`],
   ['Set the AI model for Claude Code', `Set the AI model for ${ASTRONCODE_NAME}`],
   ['Share a free week of Claude Code with friends and earn extra usage', `Share a free week of ${ASTRONCODE_NAME} with friends and earn extra usage`],
   ['Share a free week of Claude Code with friends', `Share a free week of ${ASTRONCODE_NAME} with friends`],
   ['Manage Claude Code marketplaces', `Manage ${ASTRONCODE_NAME} marketplaces`],
   ['Connect to a Claude Code server (internal — use cc:// URLs)', `Connect to an ${ASTRONCODE_NAME} server (internal — use cc:// URLs)`],
+  ['Connect to a Astroncode server (internal — use cc:// URLs)', `Connect to an ${ASTRONCODE_NAME} server (internal — use cc:// URLs)`],
   ['Connect your local environment for remote-control sessions via claude.ai/code', `Connect your local environment for remote-control sessions through the ${ASTRONCODE_NAME} bridge`],
   ['Run Claude Code on a remote host over SSH. Deploys the binary and tunnels API auth back through your local machine — no remote setup needed.', `Run ${ASTRONCODE_NAME} on a remote host over SSH. Deploys the binary and tunnels API auth back through your local machine — no remote setup needed.`],
   ['You are currently using your overages to power your Claude Code usage. We will automatically switch you back to your subscription rate limits when they reset', `You are currently using your overages to power your ${ASTRONCODE_NAME} usage. We will automatically switch you back to your subscription rate limits when they reset`],
   ['You are currently using your subscription to power your Claude Code usage', `You are currently using your subscription to power your ${ASTRONCODE_NAME} usage`],
   ['claude mcp add', `${ASTRONCODE_COMMAND} mcp add`],
   ['claude mcp xaa setup', `${ASTRONCODE_COMMAND} mcp xaa setup`],
-  ['add-from-claude-desktop', 'add-from-atroncode-desktop'],
+  ['add-from-claude-desktop', `add-from-${ASTRONCODE_COMMAND}-desktop`],
   ['Use your existing Claude Code API key', `Use your existing ${ASTRONCODE_NAME} API key`],
   ['Create a long-lived token with your Claude subscription', 'Use a long-lived token from your local provider'],
   ['ANTHROPIC_API_KEY already exists in repository secrets!', 'A provider API key secret already exists in repository secrets!'],
@@ -171,12 +213,16 @@ export const brandingReplacements = [
   ['Example: anthropics/claude-cli', `Example: your-org/${ASTRONCODE_COMMAND}`],
   ['Claude Code Review workflow', `${ASTRONCODE_NAME} Review workflow`],
   ['For manual setup → Visit: https://github.com/anthropics/claude-code-action', `For manual setup → Review your local ${ASTRONCODE_NAME} workflow template`],
+  ['For manual setup → Visit: https://github.com/astroncode/action', `For manual setup → Review your local ${ASTRONCODE_NAME} workflow template`],
+  ['For manual setup â†’ Visit: https://github.com/astroncode/action', `For manual setup â†’ Review your local ${ASTRONCODE_NAME} workflow template`],
   ['Continue the current session in Claude Desktop', `Continue the current session in ${DESKTOP_NAME}`],
   ['Claude Desktop is not installed.', `${DESKTOP_NAME} is not installed.`],
   ['Atroncode Desktop is not installed. Install it from https://claude.ai/download', `${DESKTOP_NAME} is not installed. Install the local companion app before using /desktop.`],
+  ['Astroncode Desktop is not installed. Install it from https://claude.ai/download', `${DESKTOP_NAME} is not installed. Install the local companion app before using /desktop.`],
   ['Claude Desktop needs to be updated (found v', `${DESKTOP_NAME} needs to be updated (found v`],
   ['Failed to open Claude Desktop', `Failed to open ${DESKTOP_NAME}`],
   ['Checking for Claude Desktop…', `Checking for ${DESKTOP_NAME}…`],
+  ['Checking for Claude Desktopâ€¦', `Checking for ${DESKTOP_NAME}â€¦`],
   ['Opening Claude Desktop…', `Opening ${DESKTOP_NAME}…`],
   ['Opening in Claude Desktop…', `Opening in ${DESKTOP_NAME}…`],
   ['Session transferred to Claude Desktop', `Session transferred to ${DESKTOP_NAME}`],
@@ -186,10 +232,10 @@ export const brandingReplacements = [
   ['Run Claude Code locally or remotely using the Claude desktop app: clau.de/desktop', `Run ${ASTRONCODE_NAME} locally and continue sessions with the ${DESKTOP_NAME} handoff flow.`],
   ['Continue your session in Claude Code Desktop with ', `Continue your session in ${DESKTOP_NAME} with `],
   ['/mobile to use Claude Code from the Claude app on your phone', `Use /desktop to continue the current session in ${DESKTOP_NAME}`],
-  ['Chrome extension not detected Â· https://claude.ai/chrome to install', 'Chrome extension not detected. Install it before enabling Atroncode Browser Control.'],
-  ['Claude in Chrome enabled · /chrome', 'Atroncode Browser Control enabled · /chrome'],
-  ['Claude in Chrome enabled \xB7 /chrome', 'Atroncode Browser Control enabled · /chrome'],
-  ['Claude in Chrome enabled by default', 'Atroncode Browser Control enabled by default'],
+  ['Chrome extension not detected Â· https://claude.ai/chrome to install', `Chrome extension not detected. Install it before enabling ${BROWSER_CONTROL_NAME}.`],
+  ['Claude in Chrome enabled · /chrome', `${BROWSER_CONTROL_NAME} enabled · /chrome`],
+  ['Claude in Chrome enabled \xB7 /chrome', `${BROWSER_CONTROL_NAME} enabled · /chrome`],
+  ['Claude in Chrome enabled by default', `${BROWSER_CONTROL_NAME} enabled by default`],
   [
     'No available IDEs detected. Please install the plugin and restart your IDE:\nhttps://docs.claude.com/s/claude-code-jetbrains',
     `No available IDEs detected. Please install the ${ASTRONCODE_NAME} JetBrains plugin and restart your IDE.`,
@@ -198,23 +244,23 @@ export const brandingReplacements = [
     'No available IDEs detected. Make sure your IDE has the Claude Code extension or plugin installed and is running.',
     `No available IDEs detected. Make sure your IDE has the ${ASTRONCODE_NAME} extension or plugin installed and is running.`,
   ],
-  ['No IDEs with Claude Code extension detected.', 'No IDEs with Atroncode extension detected.'],
+  ['No IDEs with Claude Code extension detected.', `No IDEs with ${ASTRONCODE_NAME} extension detected.`],
   ['Only one Claude Code instance can be connected to VS Code at a time.', `Only one ${ASTRONCODE_NAME} instance can be connected to VS Code at a time.`],
   [
     'Remote Control requires a claude.ai subscription. Run `claude auth login` to sign in with your claude.ai account.',
-    'Remote Control requires locally configured provider credentials. Run `atroncode auth login` to configure access.',
+    `Remote Control requires locally configured provider credentials. Run \`${ASTRONCODE_COMMAND} auth login\` to configure access.`,
   ],
   [
     'Remote Control requires a full-scope login token. Long-lived tokens (from `claude setup-token` or CLAUDE_CODE_OAUTH_TOKEN) are limited to inference-only for security reasons. Run `claude auth login` to use Remote Control.',
-    'Remote Control requires a local interactive login token. Long-lived tokens are limited in this path. Run `atroncode auth login` to refresh local access.',
+    `Remote Control requires a local interactive login token. Long-lived tokens are limited in this path. Run \`${ASTRONCODE_COMMAND} auth login\` to refresh local access.`,
   ],
   [
     'Unable to determine your organization for Remote Control eligibility. Run `claude auth login` to refresh your account information.',
-    'Unable to determine the local Remote Control entitlement state. Run `atroncode auth login` to refresh local provider settings.',
+    `Unable to determine the local Remote Control entitlement state. Run \`${ASTRONCODE_COMMAND} auth login\` to refresh local provider settings.`,
   ],
   [
     'Remote Control is only available with claude.ai subscriptions. Please use `/login` to sign in with your claude.ai account.',
-    'Remote Control is only available with locally configured provider credentials. Please use `/login` to refresh your Atroncode access.',
+    `Remote Control is only available with locally configured provider credentials. Please use \`/login\` to refresh your ${ASTRONCODE_NAME} access.`,
   ],
   [
     'You are already on the highest Max subscription plan. For additional usage, run /login to switch to an API usage-billed account.',
@@ -237,17 +283,17 @@ export const brandingReplacements = [
   ['channels requires claude.ai authentication (run /login)', 'channels require local provider authentication (run /login)'],
   ['Channels require claude.ai authentication · run /login', 'Channels require local provider authentication · run /login'],
   ['What\'s new [ANT-ONLY: Latest CC commits]', "What's new [internal build: latest commits]"],
-  ['                 [##]      [##]                           ', WELCOME_BORDER],
-  ['               [######]  [######]  ASTRONCODE             ', WELCOME_HEADER],
-  ['              [##][##][##][##][##] pixel coding core      ', WELCOME_TAGLINE],
-  ['               [######]  [######]                         ', WELCOME_FACE],
+  ['                 [##]      [##]                           ', WELCOME_LINE_1],
+  ['               [######]  [######]  ASTRONCODE             ', WELCOME_LINE_2],
+  ['              [##][##][##][##][##] pixel coding core      ', WELCOME_LINE_3],
+  ['               [######]  [######]                         ', WELCOME_LINE_4],
   [
     '{"            \\u2591\\u2591\\u2591\\u2591\\u2591\\u2591                                        "}',
-    `{"${WELCOME_BLANK}"}`,
+    `{"${WELCOME_LINE_5}"}`,
   ],
   [
     '{"    \\u2591\\u2591\\u2591   \\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591                                      "}',
-    `{"${WELCOME_BLANK}"}`,
+    `{"${WELCOME_LINE_6}"}`,
   ],
   [
     '{"   \\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591\\u2591                                    "}',
@@ -274,7 +320,15 @@ export const brandingReplacements = [
     replace: ASTRONCODE_NAME,
   },
   {
+    pattern: /\bAtroncode\b/g,
+    replace: ASTRONCODE_NAME,
+  },
+  {
     pattern: /\bAstronCode\b/g,
+    replace: ASTRONCODE_NAME,
+  },
+  {
+    pattern: /\bAstroncode\b/g,
     replace: ASTRONCODE_NAME,
   },
   {
@@ -283,6 +337,14 @@ export const brandingReplacements = [
   },
   {
     pattern: /Share AstronCode and earn /g,
+    replace: `Share ${ASTRONCODE_NAME} and earn `,
+  },
+  {
+    pattern: /Share Atroncode and earn /g,
+    replace: `Share ${ASTRONCODE_NAME} and earn `,
+  },
+  {
+    pattern: /Share Astroncode and earn /g,
     replace: `Share ${ASTRONCODE_NAME} and earn `,
   },
   {
@@ -302,11 +364,23 @@ export const brandingReplacements = [
     replace: `${ASTRONCODE_COMMAND} auth login`,
   },
   {
+    pattern: /\batroncode auth login\b/g,
+    replace: `${ASTRONCODE_COMMAND} auth login`,
+  },
+  {
     pattern: /\bclaude setup-token\b/g,
     replace: `${ASTRONCODE_COMMAND} setup-token`,
   },
   {
+    pattern: /\batroncode setup-token\b/g,
+    replace: `${ASTRONCODE_COMMAND} setup-token`,
+  },
+  {
     pattern: /\bclaude update\b/g,
+    replace: `${ASTRONCODE_COMMAND} update`,
+  },
+  {
+    pattern: /\batroncode update\b/g,
     replace: `${ASTRONCODE_COMMAND} update`,
   },
   {
@@ -341,13 +415,149 @@ export const brandingReplacements = [
     pattern: /Show local token setup guidance for Atroncode(?: \(disabled in local build\))?/g,
     replace: `Show local token setup guidance for ${ASTRONCODE_NAME}`,
   },
+  {
+    pattern: /Configure local provider credentials for Astroncode(?: \(disabled in local build\))?/g,
+    replace: `Configure local provider credentials for ${ASTRONCODE_NAME}`,
+  },
+  {
+    pattern: /Remove locally stored provider credentials for Astroncode(?: \(disabled in local build\))?/g,
+    replace: `Remove locally stored provider credentials for ${ASTRONCODE_NAME}`,
+  },
+  {
+    pattern: /Show local token setup guidance for Astroncode(?: \(disabled in local build\))?/g,
+    replace: `Show local token setup guidance for ${ASTRONCODE_NAME}`,
+  },
+  {
+    pattern: /Tips for getting started/g,
+    replace: 'Astroncode quick start',
+  },
+  {
+    pattern: /Run \/init to create a CLAUDE\.md file with instructions for Claude Code/g,
+    replace: 'Run /init to create an ASTRONCODE.md file with instructions for Astroncode',
+  },
+  {
+    pattern: /Run \/init to create a CLAUDE\.md file with instructions for Claude/g,
+    replace: 'Run /init to create an ASTRONCODE.md file with instructions for Astroncode',
+  },
+  {
+    pattern: /Use \/memory to view and manage Claude memory/g,
+    replace: 'Use /memory to view and manage Astron memory',
+  },
+  {
+    pattern: /Hit Enter to queue up additional messages while Claude is working\./g,
+    replace: 'Hit Enter to queue up additional messages while Astroncode is working.',
+  },
+  {
+    pattern: /Connect to a Astroncode server \(internal[^)]*use cc:\/\/ URLs\)/g,
+    replace: `Connect to an ${ASTRONCODE_NAME} server (internal â€” use cc:// URLs)`,
+  },
+  {
+    pattern: /For manual setup [^:]+: https:\/\/github\.com\/astroncode\/action/g,
+    replace: `For manual setup â†’ Review your local ${ASTRONCODE_NAME} workflow template`,
+  },
+  {
+    pattern: /Opus now defaults to 1M context · 5x more room, same pricing/g,
+    replace: 'Astroncode local runtime ready · Astron provider connected',
+  },
+  {
+    pattern: /\bAnthropic\b/g,
+    replace: 'Astron',
+  },
+  {
+    pattern: /\banthropic\b/g,
+    replace: 'astron',
+  },
+  {
+    pattern: /claude:"rgb\(215,119,87\)"/g,
+    replace: 'claude:"rgb(96,120,255)"',
+  },
+  {
+    pattern: /claude:"rgb\(255,153,51\)"/g,
+    replace: 'claude:"rgb(96,120,255)"',
+  },
+  {
+    pattern: /claudeShimmer:"rgb\(245,149,117\)"/g,
+    replace: 'claudeShimmer:"rgb(156,170,255)"',
+  },
+  {
+    pattern: /claudeShimmer:"rgb\(235,159,127\)"/g,
+    replace: 'claudeShimmer:"rgb(156,170,255)"',
+  },
+  {
+    pattern: /claudeShimmer:"rgb\(255,183,101\)"/g,
+    replace: 'claudeShimmer:"rgb(156,170,255)"',
+  },
+  {
+    pattern: /claude:"ansi:redBright"/g,
+    replace: 'claude:"ansi:blueBright"',
+  },
+  {
+    pattern: /claudeShimmer:"ansi:yellowBright"/g,
+    replace: 'claudeShimmer:"ansi:cyanBright"',
+  },
+  {
+    pattern: /clawd_body:"rgb\(215,119,87\)"/g,
+    replace: 'clawd_body:"rgb(186,120,255)"',
+  },
+  {
+    pattern: /clawd_body:"ansi:redBright"/g,
+    replace: 'clawd_body:"ansi:magentaBright"',
+  },
+  {
+    pattern: /briefLabelClaude:"rgb\(215,119,87\)"/g,
+    replace: 'briefLabelClaude:"rgb(186,120,255)"',
+  },
+  {
+    pattern: /briefLabelClaude:"rgb\(255,153,51\)"/g,
+    replace: 'briefLabelClaude:"rgb(186,120,255)"',
+  },
+  {
+    pattern: /briefLabelClaude:"ansi:redBright"/g,
+    replace: 'briefLabelClaude:"ansi:magentaBright"',
+  },
+  {
+    pattern: /function qJ6\(q\)\{.*?return W\}/gs,
+    replace: RUNTIME_WELCOME_ART,
+  },
+  {
+    pattern: /function FF8\(q\)\{if\(!q\|\|q\.length>A0Y\)return"Welcome back!";return`Welcome back \$\{q\}!`\}/g,
+    replace: RUNTIME_WELCOME_EMPTY,
+  },
+  {
+    pattern: /async function lcY\(\)\{if\(jj\(\)\|\|i6\(process\.env\.DISABLE_INSTALLATION_CHECKS\)\)return null;if\(await Ro\(\)==="development"\)return null;return\{timeoutMs:15000,key:"npm-deprecation-warning",text:ccY,color:"warning",priority:"high"\}\}/g,
+    replace: RUNTIME_NOTICE_DISABLED,
+  },
+  {
+    pattern: /Run `claude install`/g,
+    replace: 'Run `astroncode install`',
+  },
+  {
+    pattern: /Use `claude install` for native installation/g,
+    replace: 'Use `astroncode install` for local installation guidance',
+  },
+  {
+    pattern: /Run claude install to update configuration/g,
+    replace: 'Run astroncode install to refresh local configuration',
+  },
+  {
+    pattern: /Consider using native installation: claude install/g,
+    replace: 'Review the local Astroncode install guidance: astroncode install',
+  },
+  {
+    pattern: /Or consider using native installation with: claude install/g,
+    replace: 'Or review the local Astroncode install guidance with: astroncode install',
+  },
+  {
+    pattern: /Astroncode has switched from npm to native installer\.[^"]*/g,
+    replace: 'Astroncode local runtime ready.',
+  },
 ]
 
 export function applyBrandingReplacements(source) {
   let patched = source
   let replacements = 0
 
-  for (const rule of brandingReplacements) {
+  for (const rule of [...brandingReplacements, ...additionalBrandingRules, ...additionalBrandingPatterns, ...clawdReplacementRules, ...projectGuidanceRules, ...projectGuidancePatterns, ...modelNoticeRules, ...modelNoticePatterns, ...subscriptionRules, ...consoleRules, ...extendedUrlRules, ...githubRules, ...modelAliasRules, ...extendedPatterns, ...moreModelRules, ...moreModelPatterns, ...fixRules, ...fixPatterns]) {
     if (Array.isArray(rule)) {
       const [from, to] = rule
 

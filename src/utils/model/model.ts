@@ -288,18 +288,18 @@ export function getClaudeAiUserDefaultModelDescription(
 ): string {
   if (isMaxSubscriber() || isTeamPremiumSubscriber()) {
     if (isOpus1mMergeEnabled()) {
-      return `Opus 4.6 with 1M context · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
+      return `Smart 4.6 - Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
     }
-    return `Opus 4.6 · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
+    return `Smart 4.6 - Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
   }
-  return 'Sonnet 4.6 · Best for everyday tasks'
+  return 'Fast 4.6 - Best for everyday tasks'
 }
 
 export function renderDefaultModelSetting(
   setting: ModelName | ModelAlias,
 ): string {
   if (setting === 'opusplan') {
-    return 'Opus 4.6 in plan mode, else Sonnet 4.6'
+    return 'Smart 4.6 in plan mode, else Fast 4.6'
   }
   return renderModelName(parseUserSpecifiedModel(setting))
 }
@@ -349,35 +349,35 @@ export function renderModelSetting(setting: ModelName | ModelAlias): string {
 export function getPublicModelDisplayName(model: ModelName): string | null {
   switch (model) {
     case getModelStrings().opus46:
-      return 'Opus 4.6'
+      return 'Smart 4.6'
     case getModelStrings().opus46 + '[1m]':
-      return 'Opus 4.6 (1M context)'
+      return 'Smart 4.6 (1M context)'
     case getModelStrings().opus45:
-      return 'Opus 4.5'
+      return 'Smart 4.5'
     case getModelStrings().opus41:
-      return 'Opus 4.1'
+      return 'Smart 4.1'
     case getModelStrings().opus40:
-      return 'Opus 4'
+      return 'Smart 4'
     case getModelStrings().sonnet46 + '[1m]':
-      return 'Sonnet 4.6 (1M context)'
+      return 'Fast 4.6 (1M context)'
     case getModelStrings().sonnet46:
-      return 'Sonnet 4.6'
+      return 'Fast 4.6'
     case getModelStrings().sonnet45 + '[1m]':
-      return 'Sonnet 4.5 (1M context)'
+      return 'Fast 4.5 (1M context)'
     case getModelStrings().sonnet45:
-      return 'Sonnet 4.5'
+      return 'Fast 4.5'
     case getModelStrings().sonnet40:
-      return 'Sonnet 4'
+      return 'Fast 4'
     case getModelStrings().sonnet40 + '[1m]':
-      return 'Sonnet 4 (1M context)'
+      return 'Fast 4 (1M context)'
     case getModelStrings().sonnet37:
-      return 'Sonnet 3.7'
+      return 'Fast 3.7'
     case getModelStrings().sonnet35:
-      return 'Sonnet 3.5'
+      return 'Fast 3.5'
     case getModelStrings().haiku45:
-      return 'Haiku 4.5'
+      return 'Lite 4.5'
     case getModelStrings().haiku35:
-      return 'Haiku 3.5'
+      return 'Lite 3.5'
     default:
       return null
   }
@@ -416,18 +416,18 @@ export function renderModelName(model: ModelName): string {
 
 /**
  * Returns a safe author name for public display (e.g., in git commit trailers).
- * Returns "Claude {ModelName}" for publicly known models, or "Claude ({model})"
+ * Returns "Astron {ModelName}" for publicly known models, or "Astron ({model})"
  * for unknown/internal models so the exact model name is preserved.
  *
  * @param model The full model name
- * @returns "Claude {ModelName}" for public models, or "Claude ({model})" for non-public models
+ * @returns "Astron {ModelName}" for public models, or "Astron ({model})" for non-public models
  */
 export function getPublicModelName(model: ModelName): string {
   const publicName = getPublicModelDisplayName(model)
   if (publicName) {
-    return `Claude ${publicName}`
+    return `Astron ${publicName}`
   }
-  return `Claude (${model})`
+  return `Astron (${model})`
 }
 
 /**
@@ -550,7 +550,7 @@ function isLegacyOpusFirstParty(model: string): boolean {
  * Opt-out for the legacy Opus 4.0/4.1 → current Opus remap.
  */
 export function isLegacyModelRemapEnabled(): boolean {
-  return !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_LEGACY_MODEL_REMAP)
+  return !isEnvTruthy(process.env.ASTRONCODE_DISABLE_LEGACY_MODEL_REMAP)
 }
 
 export function modelDisplayString(model: ModelSetting): string {
@@ -577,37 +577,37 @@ export function getMarketingNameForModel(modelId: string): string | undefined {
   const canonical = getCanonicalName(modelId)
 
   if (canonical.includes('claude-opus-4-6')) {
-    return has1m ? 'Opus 4.6 (with 1M context)' : 'Opus 4.6'
+    return has1m ? 'Smart 4.6 (with 1M context)' : 'Smart 4.6'
   }
   if (canonical.includes('claude-opus-4-5')) {
-    return 'Opus 4.5'
+    return 'Smart 4.5'
   }
   if (canonical.includes('claude-opus-4-1')) {
-    return 'Opus 4.1'
+    return 'Smart 4.1'
   }
   if (canonical.includes('claude-opus-4')) {
-    return 'Opus 4'
+    return 'Smart 4'
   }
   if (canonical.includes('claude-sonnet-4-6')) {
-    return has1m ? 'Sonnet 4.6 (with 1M context)' : 'Sonnet 4.6'
+    return has1m ? 'Fast 4.6 (with 1M context)' : 'Fast 4.6'
   }
   if (canonical.includes('claude-sonnet-4-5')) {
-    return has1m ? 'Sonnet 4.5 (with 1M context)' : 'Sonnet 4.5'
+    return has1m ? 'Fast 4.5 (with 1M context)' : 'Fast 4.5'
   }
   if (canonical.includes('claude-sonnet-4')) {
-    return has1m ? 'Sonnet 4 (with 1M context)' : 'Sonnet 4'
+    return has1m ? 'Fast 4 (with 1M context)' : 'Fast 4'
   }
   if (canonical.includes('claude-3-7-sonnet')) {
-    return 'Claude 3.7 Sonnet'
+    return 'Fast 3.7'
   }
   if (canonical.includes('claude-3-5-sonnet')) {
-    return 'Claude 3.5 Sonnet'
+    return 'Fast 3.5'
   }
   if (canonical.includes('claude-haiku-4-5')) {
-    return 'Haiku 4.5'
+    return 'Lite 4.5'
   }
   if (canonical.includes('claude-3-5-haiku')) {
-    return 'Claude 3.5 Haiku'
+    return 'Lite 3.5'
   }
 
   return undefined

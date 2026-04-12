@@ -30,8 +30,12 @@ export function startCapturingEarlyInput(): void {
   // Only capture in interactive mode: stdin must be a TTY, and we must not
   // be in print mode. Raw mode disables ISIG (terminal Ctrl+C → SIGINT),
   // which would make -p uninterruptible.
+  // On Windows, grabbing raw-mode before the REPL mounts can interfere with
+  // IME/CJK composition. Preserving Chinese input is more important than
+  // buffering a few startup keystrokes.
   if (
     !process.stdin.isTTY ||
+    process.platform === 'win32' ||
     isCapturing ||
     process.argv.includes('-p') ||
     process.argv.includes('--print')
@@ -70,10 +74,11 @@ export function startCapturingEarlyInput(): void {
  * Process a chunk of input data
  */
 function processChunk(str: string): void {
+  const chars = Array.from(str)
   let i = 0
-  while (i < str.length) {
-    const char = str[i]!
-    const code = char.charCodeAt(0)
+  while (i < chars.length) {
+    const char = chars[i]!
+    const code = char.codePointAt(0)!
 
     // Ctrl+C (code 3) - stop capturing and exit immediately.
     // We use process.exit here instead of gracefulShutdown because at this
@@ -107,12 +112,13 @@ function processChunk(str: string): void {
       i++ // Skip the ESC character
       // Skip until the terminating byte (@ to ~) or end of string
       while (
-        i < str.length &&
-        !(str.charCodeAt(i) >= 64 && str.charCodeAt(i) <= 126)
+        i < chars.length &&
+        ((chars[i]!.codePointAt(0) ?? 0) < 64 ||
+          (chars[i]!.codePointAt(0) ?? 0) > 126)
       ) {
         i++
       }
-      if (i < str.length) i++ // Skip the terminating byte
+      if (i < chars.length) i++ // Skip the terminating byte
       continue
     }
 

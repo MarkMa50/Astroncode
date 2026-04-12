@@ -46,6 +46,14 @@ ASTRONCODE_BASE_URL=...
 ASTRONCODE_MODEL=...
 ```
 
+You can open the interactive setup wizard any time with:
+
+```powershell
+.\astroncode.ps1 setup
+```
+
+On a brand-new machine with no provider configured yet, a plain `astroncode` launch now opens this setup wizard automatically before the runtime starts.
+
 ## Runtime hardening
 
 The local launch path now does three things before `cli.js` starts:
@@ -62,12 +70,15 @@ Supported and verified:
 - `--help`
 - `-v`
 - `-p/--print`
+- `gui` / `ui`
+- `install` repairs global command shims
+- `install` refreshes desktop launchers and prints a local readiness summary
 - `auth status`
 - `auth login`
 - `auth logout`
 - `setup-token`
+- `setup`
 - `doctor`
-- `install`
 - `update` / `upgrade`
 - local provider-token execution through `.env.astroncode`
 
@@ -78,6 +89,33 @@ Currently blocked on purpose in this local build:
 - `--chrome` / `--no-chrome`
 
 Those remaining paths still depend on upstream Claude browser-extension or hosted session infrastructure, so Atroncode exits early with a clear local-build message instead of sending you into a broken flow.
+
+## Local GUI workbench
+
+Launch the new local GUI workbench with:
+
+```powershell
+.\astroncode.ps1 gui
+```
+
+Or:
+
+```powershell
+node .\scripts\start.mjs gui
+```
+
+Optional:
+
+```powershell
+.\astroncode.ps1 gui --port 46321 --no-browser
+```
+
+The GUI runs as a local browser workbench backed by the existing Astroncode core. V1 includes:
+
+- a left rail for workspace/runtime state
+- a central transcript and prompt composer
+- a right context panel with local environment details
+- prompt execution through the local `astroncode -p` path
 
 ## Tests
 

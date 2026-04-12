@@ -11,13 +11,38 @@ import {
   normalizeWindowsPrintRuntimeResult,
 } from './runtime-exit-normalizer.mjs'
 import { detectUnsupportedAstronInvocation } from './runtime-guards.mjs'
+import { runSetupWizard, shouldAutoLaunchSetup } from './setup-wizard.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const projectRoot = path.resolve(__dirname, '..')
 const cliEntry = path.join(projectRoot, 'cli.js')
 const runtimeCacheDir = path.join(projectRoot, '.astroncode-runtime')
+const astronSystemPromptFile = path.join(__dirname, 'astron-system-prompt.txt')
 const launchArgs = process.argv.slice(2)
+
+// Windows: Set stdin to UTF-8 mode for Chinese/CJK input
+if (process.platform === 'win32' && process.stdin.isTTY) {
+  process.stdin.setEncoding('utf8')
+}
+
+function hasPromptOverride(argv) {
+  return argv.some(
+    arg =>
+      arg === '--system-prompt' ||
+      arg === '--system-prompt-file' ||
+      arg === '--append-system-prompt' ||
+      arg === '--append-system-prompt-file' ||
+      arg.startsWith('--system-prompt=') ||
+      arg.startsWith('--system-prompt-file=') ||
+      arg.startsWith('--append-system-prompt=') ||
+      arg.startsWith('--append-system-prompt-file='),
+  )
+}
+
+const runtimeArgs = hasPromptOverride(launchArgs)
+  ? launchArgs
+  : ['--append-system-prompt-file', astronSystemPromptFile, ...launchArgs]
 
 const localCommand = await runLocalAstronCommand({
   argv: launchArgs,
@@ -27,6 +52,20 @@ const localCommand = await runLocalAstronCommand({
 
 if (localCommand.handled) {
   process.exit(localCommand.exitCode ?? 0)
+}
+
+const initialConfig = loadAstronEnvFile(projectRoot)
+
+if (shouldAutoLaunchSetup({ argv: launchArgs, entries: initialConfig })) {
+  const setupResult = await runSetupWizard({
+    projectRoot,
+    stdout: process.stdout,
+    stdin: process.stdin,
+  })
+
+  if (!setupResult.completed) {
+    process.exit(setupResult.exitCode ?? 0)
+  }
 }
 
 const unsupported = detectUnsupportedAstronInvocation(launchArgs)
@@ -52,11 +91,15 @@ const mergedEnv = applyAstronEnv({
 })
 
 const shouldCapturePrintRuntime =
-  process.platform === 'win32' && isPrintInvocation(launchArgs)
+  process.platform === 'win32' && isPrintInvocation(runtimeArgs)
 
-const child = spawn(process.execPath, [runtimeEntry, ...launchArgs], {
+const child = spawn(process.execPath, [runtimeEntry, ...runtimeArgs], {
   cwd: projectRoot,
-  env: mergedEnv,
+  env: {
+    ...mergedEnv,
+    LANG: 'en_US.UTF-8',
+    PYTHONIOENCODING: 'utf-8',
+  },
   stdio: shouldCapturePrintRuntime ? ['inherit', 'pipe', 'pipe'] : 'inherit',
 })
 

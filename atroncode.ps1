@@ -1,20 +1,10 @@
 $ErrorActionPreference = 'Stop'
 
-function Quote-CmdArg([string]$arg) {
-  if ($arg -notmatch '[\s"]') {
-    return $arg
-  }
+# Set console to UTF-8 for proper Chinese/Unicode input support
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
-  return '"' + ($arg -replace '(["^])', '^$1') + '"'
-}
-
-$cmdPath = Join-Path $PSScriptRoot 'atroncode.cmd'
-$quotedArgs = @($args | ForEach-Object { Quote-CmdArg $_ })
-$commandLine = '"' + $cmdPath + '"'
-
-if ($quotedArgs.Count -gt 0) {
-  $commandLine += ' ' + ($quotedArgs -join ' ')
-}
-
-& cmd /d /s /c $commandLine
+# Run directly with Node.js (bypass cmd.exe for better Unicode/IME support)
+& node "$PSScriptRoot\scripts\start.mjs" @args
 exit $LASTEXITCODE

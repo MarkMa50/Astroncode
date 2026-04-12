@@ -1,4 +1,4 @@
-import * as React from 'react'
+﻿import * as React from 'react'
 import { Box, Text } from '../../ink.js'
 
 export type ClawdPose =
@@ -11,43 +11,52 @@ type Props = {
   pose?: ClawdPose
 }
 
-type MascotFrame = {
-  top: string
-  face: string
-  base: string
-}
-
-const FRAMES: Record<ClawdPose, MascotFrame> = {
-  default: {
-    top: ' .----------. ',
-    face: ' |  o    o  | ',
-    base: " '---[__]---' ",
-  },
-  'look-left': {
-    top: ' .----------. ',
-    face: ' | o     o  | ',
-    base: " '---[__]---' ",
-  },
-  'look-right': {
-    top: ' .----------. ',
-    face: ' |  o     o | ',
-    base: " '---[__]---' ",
-  },
-  'arms-up': {
-    top: ' /----------\\ ',
-    face: ' |  o    o  | ',
-    base: " '---[__]---' ",
-  },
+// Compact Astroncode terminal mascot used in condensed layouts.
+const MASCOT_FRAMES: Record<ClawdPose, string[]> = {
+  default: [
+    '      ██████████      ',
+    '    ██  ◉    ◉  ██    ',
+    '    ██    ▄▄    ██    ',
+    '    ██  ASTRON  ██    ',
+    '    ██▄▄▄▄▄▄▄▄▄▄██    ',
+    '       ███  ███       ',
+  ],
+  'look-left': [
+    '      ██████████      ',
+    '    ██ ◉      ◉ ██    ',
+    '    ██    ▄▄    ██    ',
+    '    ██  ASTRON  ██    ',
+    '    ██▄▄▄▄▄▄▄▄▄▄██    ',
+    '       ███  ███       ',
+  ],
+  'look-right': [
+    '      ██████████      ',
+    '    ██  ◉      ◉██    ',
+    '    ██    ▄▄    ██    ',
+    '    ██  ASTRON  ██    ',
+    '    ██▄▄▄▄▄▄▄▄▄▄██    ',
+    '       ███  ███       ',
+  ],
+  'arms-up': [
+    '    \\  ████████  /    ',
+    '     \\█ ◉    ◉ █/     ',
+    '      █   ▄▄   █      ',
+    '      █ ASTRON █      ',
+    '      █▄▄▄▄▄▄▄▄█      ',
+    '       ██    ██       ',
+  ],
 }
 
 export function Clawd({ pose = 'default' }: Props = {}): React.ReactNode {
-  const frame = FRAMES[pose]
+  const frame = MASCOT_FRAMES[pose]
 
   return (
     <Box flexDirection="column" alignItems="center">
-      <Text color="clawd_body">{frame.top}</Text>
-      <Text color="clawd_body">{frame.face}</Text>
-      <Text color="clawd_body">{frame.base}</Text>
+      {frame.map((line, i) => (
+        <Text key={i} color="astron" bold={i === 0 || i === frame.length - 1}>
+          {line}
+        </Text>
+      ))}
     </Box>
   )
 }

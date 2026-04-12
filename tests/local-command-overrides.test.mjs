@@ -51,7 +51,7 @@ test('runLocalAstronCommand reports local auth status and masks the secret', asy
 
   assert.equal(result.handled, true)
   assert.equal(result.exitCode, 0)
-  assert.match(stdout.toString(), /Atroncode auth status/)
+  assert.match(stdout.toString(), /Astroncode auth status/)
   assert.match(stdout.toString(), /Auth status: configured/)
   assert.match(stdout.toString(), /astron-code-latest/)
   assert.match(stdout.toString(), /https:\/\/maas-coding-api\.cn-huabei-1\.xf-yun\.com\/anthropic/)
@@ -107,7 +107,7 @@ test('runLocalAstronCommand prints local help for auth login', async () => {
 
   assert.equal(result.handled, true)
   assert.equal(result.exitCode, 0)
-  assert.match(stdout.toString(), /Usage: atroncode auth login/)
+  assert.match(stdout.toString(), /Usage: astroncode auth login/)
   assert.match(stdout.toString(), /--token <token>/)
   assert.match(stdout.toString(), /--base-url <url>/)
   assert.match(stdout.toString(), /--model <model>/)
@@ -173,7 +173,7 @@ test('runLocalAstronCommand doctor validates local runtime readiness', async () 
 
   assert.equal(result.handled, true)
   assert.equal(result.exitCode, 0)
-  assert.match(stdout.toString(), /Atroncode doctor/i)
+  assert.match(stdout.toString(), /Astroncode doctor/i)
   assert.match(stdout.toString(), /\[ok\] Local provider credentials/)
   assert.match(stdout.toString(), /\[ok\] Runtime branding cache/)
 })
@@ -192,7 +192,7 @@ test('runLocalAstronCommand prints local help for doctor and install', async () 
 
   assert.equal(doctorResult.handled, true)
   assert.equal(doctorResult.exitCode, 0)
-  assert.match(doctorHelp.toString(), /Usage: atroncode doctor/)
+  assert.match(doctorHelp.toString(), /Usage: astroncode doctor/)
   assert.match(doctorHelp.toString(), /local diagnostics/i)
 
   const installHelp = createWriter()
@@ -205,11 +205,11 @@ test('runLocalAstronCommand prints local help for doctor and install', async () 
 
   assert.equal(installResult.handled, true)
   assert.equal(installResult.exitCode, 0)
-  assert.match(installHelp.toString(), /Usage: atroncode install \[target\]/)
-  assert.match(installHelp.toString(), /local status only/i)
+  assert.match(installHelp.toString(), /Usage: astroncode install \[target\]/)
+  assert.match(installHelp.toString(), /repair or install local command shims/i)
 })
 
-test('runLocalAstronCommand blocks hosted bridge aliases with AstronCode guidance', async () => {
+test('runLocalAstronCommand blocks hosted bridge aliases with Astroncode guidance', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'astron-local-bridge-'))
   tempDirs.push(dir)
 
@@ -223,8 +223,8 @@ test('runLocalAstronCommand blocks hosted bridge aliases with AstronCode guidanc
 
   assert.equal(result.handled, true)
   assert.equal(result.exitCode, 2)
-  assert.match(stdout.toString(), /Remote control is unavailable in this local Atroncode build/i)
-  assert.match(stdout.toString(), /Use `atroncode` or `atroncode -p` for local runs/i)
+  assert.match(stdout.toString(), /Remote control is unavailable in this local Astroncode build/i)
+  assert.match(stdout.toString(), /Use `astroncode` or `astroncode -p` for local runs/i)
   assert.doesNotMatch(stdout.toString(), /claude\.ai/i)
 })
 
@@ -242,6 +242,107 @@ test('runLocalAstronCommand prints local help for assistant bridge mode', async 
 
   assert.equal(result.handled, true)
   assert.equal(result.exitCode, 0)
-  assert.match(stdout.toString(), /Usage: atroncode assistant \[session-id\]/i)
+  assert.match(stdout.toString(), /Usage: astroncode assistant \[session-id\]/i)
   assert.match(stdout.toString(), /not available in this local build/i)
+})
+
+test('runLocalAstronCommand prints local help for gui and ui launchers', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'astron-local-gui-help-'))
+  tempDirs.push(dir)
+
+  const guiHelp = createWriter()
+  const guiResult = await runLocalAstronCommand({
+    argv: ['gui', '--help'],
+    projectRoot: dir,
+    stdout: guiHelp,
+    stderr: createWriter(),
+  })
+
+  assert.equal(guiResult.handled, true)
+  assert.equal(guiResult.exitCode, 0)
+  assert.match(guiHelp.toString(), /Usage: astroncode gui/i)
+  assert.match(guiHelp.toString(), /Launch the local Astroncode GUI workbench/i)
+  assert.match(guiHelp.toString(), /--no-browser/i)
+  assert.match(guiHelp.toString(), /--port <port>/i)
+
+  const uiHelp = createWriter()
+  const uiResult = await runLocalAstronCommand({
+    argv: ['ui', '--help'],
+    projectRoot: dir,
+    stdout: uiHelp,
+    stderr: createWriter(),
+  })
+
+  assert.equal(uiResult.handled, true)
+  assert.equal(uiResult.exitCode, 0)
+  assert.match(uiHelp.toString(), /Usage: astroncode ui/i)
+  assert.match(uiHelp.toString(), /default browser/i)
+})
+
+test('runLocalAstronCommand prints local help for setup wizard', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'astron-local-setup-help-'))
+  tempDirs.push(dir)
+
+  const stdout = createWriter()
+  const result = await runLocalAstronCommand({
+    argv: ['setup', '--help'],
+    projectRoot: dir,
+    stdout,
+    stderr: createWriter(),
+  })
+
+  assert.equal(result.handled, true)
+  assert.equal(result.exitCode, 0)
+  assert.match(stdout.toString(), /Usage: astroncode setup/i)
+  assert.match(stdout.toString(), /setup wizard/i)
+  assert.match(stdout.toString(), /provider credentials/i)
+})
+
+test('runLocalAstronCommand install repairs command shims in the target shim directory', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'astron-local-install-'))
+  tempDirs.push(dir)
+
+  const shimDir = await mkdtemp(path.join(os.tmpdir(), 'astron-local-shim-target-'))
+  tempDirs.push(shimDir)
+  const desktopDir = await mkdtemp(path.join(os.tmpdir(), 'astron-local-desktop-target-'))
+  tempDirs.push(desktopDir)
+
+  const previousShimDir = process.env.ASTRONCODE_SHIM_DIR
+  const previousDesktopDir = process.env.ASTRONCODE_DESKTOP_DIR
+  process.env.ASTRONCODE_SHIM_DIR = shimDir
+  process.env.ASTRONCODE_DESKTOP_DIR = desktopDir
+
+  try {
+    const stdout = createWriter()
+    const result = await runLocalAstronCommand({
+      argv: ['install'],
+      projectRoot: dir,
+      stdout,
+      stderr: createWriter(),
+    })
+
+    const astroncodeShim = await readFile(path.join(shimDir, 'astroncode.cmd'), 'utf8')
+    const desktopLauncher = await readFile(path.join(desktopDir, 'Astroncode.cmd'), 'utf8')
+
+    assert.equal(result.handled, true)
+    assert.equal(result.exitCode, 0)
+    assert.match(stdout.toString(), /Installed command shims/i)
+    assert.match(stdout.toString(), /Repaired desktop launchers/i)
+    assert.match(stdout.toString(), /Node\.js:/i)
+    assert.match(stdout.toString(), /astroncode\.cmd/i)
+    assert.match(astroncodeShim, /astroncode\.ps1/)
+    assert.match(desktopLauncher, /astroncode\.ps1/)
+  } finally {
+    if (previousShimDir === undefined) {
+      delete process.env.ASTRONCODE_SHIM_DIR
+    } else {
+      process.env.ASTRONCODE_SHIM_DIR = previousShimDir
+    }
+
+    if (previousDesktopDir === undefined) {
+      delete process.env.ASTRONCODE_DESKTOP_DIR
+    } else {
+      process.env.ASTRONCODE_DESKTOP_DIR = previousDesktopDir
+    }
+  }
 })

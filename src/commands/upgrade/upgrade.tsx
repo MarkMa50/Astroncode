@@ -23,7 +23,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
         return null;
       }
     }
-    const url = 'https://claude.ai/upgrade/max';
+    const url = 'https://astron.dev/upgrade/max';
     await openBrowser(url);
     return <Login startingMessage={'Opening the local provider login flow. Exit with Ctrl-C to keep your current settings.'} onDone={success => {
       context.onChangeAPIKey();

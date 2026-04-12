@@ -39,7 +39,7 @@ export function createWhatsNewFeed(releaseNotes: string[]): FeedConfig {
       text: note
     };
   });
-  const emptyMessage = "external" === 'ant' ? 'Unable to fetch latest Atroncode internal commits' : 'Check the Atroncode changelog for updates';
+  const emptyMessage = "external" === 'ant' ? 'Unable to fetch latest Astroncode internal commits' : 'Check the Astroncode changelog for updates';
   return {
     title: "external" === 'ant' ? "What's new [internal build: latest commits]" : "What's new",
     lines,
@@ -60,27 +60,27 @@ export function createProjectOnboardingFeed(steps: Step[]): FeedConfig {
       text: `${checkmark}${text}`
     };
   });
-  const warningText = getCwd() === homedir() ? 'Note: You have launched atroncode in your home directory. For the best experience, launch it in a project directory instead.' : undefined;
+  const warningText = getCwd() === homedir() ? 'Note: You have launched astroncode in your home directory. For the best experience, launch it in a project directory instead.' : undefined;
   if (warningText) {
     lines.push({
       text: warningText
     });
   }
   return {
-    title: 'Tips for getting started',
+    title: 'Astroncode quick start',
     lines
   };
 }
 export function createGuestPassesFeed(): FeedConfig {
   const reward = getCachedReferrerReward();
-  const subtitle = reward ? `Share Atroncode and earn ${formatCreditAmount(reward)} of extra usage` : 'Share Atroncode with friends';
+  const subtitle = reward ? `Share Astroncode and earn ${formatCreditAmount(reward)} of extra usage` : 'Share Astroncode with friends';
   return {
     title: '3 guest passes',
     lines: [],
     customContent: {
       content: <>
           <Box marginY={1}>
-            <Text color="claude">[✻] [✻] [✻]</Text>
+            <Text color="astron">[✻] [✻] [✻]</Text>
           </Box>
           <Text dimColor>{subtitle}</Text>
         </>,

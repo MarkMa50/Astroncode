@@ -6,7 +6,10 @@ import {
   readAstronEnvConfig,
   writeAstronEnvFile,
 } from './astron-env.mjs'
+import { launchAstronGui } from './gui-server.mjs'
+import { runAstronInstall } from './install-local-runtime.mjs'
 import { ensureRuntimeBrandingBundle } from './runtime-branding.mjs'
+import { runSetupWizard } from './setup-wizard.mjs'
 
 function writeLine(stream, line = '') {
   stream.write(`${line}\n`)
@@ -185,6 +188,23 @@ function writeSetupTokenHelp(stdout) {
   ])
 }
 
+function writeSetupHelp(stdout) {
+  writeLines(stdout, [
+    `Usage: ${ASTRONCODE_COMMAND} setup`,
+    '',
+    `Launch the interactive setup wizard for ${ASTRONCODE_NAME} provider credentials.`,
+    '',
+    'The setup wizard can be used on first launch or any time later to update:',
+    '  - provider credential type (token or api-key)',
+    '  - provider credential value',
+    '  - provider base URL',
+    '  - default model ID',
+    '',
+    'Options:',
+    '  -h, --help           Display help for command',
+  ])
+}
+
 function writeDoctorHelp(stdout) {
   writeLines(stdout, [
     `Usage: ${ASTRONCODE_COMMAND} doctor`,
@@ -204,10 +224,11 @@ function writeInstallHelp(stdout) {
   writeLines(stdout, [
     `Usage: ${ASTRONCODE_COMMAND} install [target]`,
     '',
-    `Show local install status for this ${ASTRONCODE_NAME} build.`,
+    `Repair or install local command shims for this ${ASTRONCODE_NAME} build.`,
     '',
-    'This local build provides local status only and does not fetch upstream binaries. Use this command to inspect',
-    'the current install path and requested target only.',
+    'This command refreshes the user-level `astroncode` and `atroncode` launchers in your shim directory so they',
+    'work from any folder in your shell.',
+    'It also repairs the desktop launchers and prints a local readiness summary.',
   ])
 }
 
@@ -240,6 +261,29 @@ function writeRemoteHelp(stdout) {
     '',
     `Use \`${ASTRONCODE_COMMAND}\` or \`${ASTRONCODE_COMMAND} -p\` for local runs.`,
     `Example: ${ASTRONCODE_COMMAND} -p "<task>"`,
+  ])
+}
+
+function writeGuiHelp(stdout, command = 'gui') {
+  writeLines(stdout, [
+    `Usage: ${ASTRONCODE_COMMAND} ${command}`,
+    '',
+    `Launch the local ${ASTRONCODE_NAME} GUI workbench in your browser.`,
+    '',
+    'Options:',
+    '  --port <port>        Bind the local GUI server to a fixed port',
+    '  --host <host>        Bind the local GUI server to a specific host (default: 127.0.0.1)',
+    '  --no-browser         Start the local GUI server without opening the browser',
+    '  -h, --help           Display help for command',
+    '',
+    'Behavior:',
+    '  - starts a local GUI server',
+    '  - opens the workbench in your default browser',
+    '  - keeps the local bridge running until you stop it',
+    '',
+    'Aliases:',
+    `  ${ASTRONCODE_COMMAND} gui`,
+    `  ${ASTRONCODE_COMMAND} ui`,
   ])
 }
 
@@ -301,7 +345,7 @@ function handleAuthLogin({ argv, projectRoot, stdout }) {
     writeLine(stdout)
     writeLine(
       stdout,
-      `Use \`${ASTRONCODE_COMMAND} auth login --token "<provider-token>" --base-url "<provider-url>" --model "<model-id>"\` to update local credentials.`,
+      `Use \`${ASTRONCODE_COMMAND} setup\` for the interactive provider wizard, or \`${ASTRONCODE_COMMAND} auth login --token "<provider-token>" --base-url "<provider-url>" --model "<model-id>"\` for direct updates.`,
     )
 
     if (state.ready) {
@@ -376,7 +420,7 @@ function handleSetupToken({ argv, projectRoot, stdout }) {
   }
 
   writeLine(stdout, `${ASTRONCODE_NAME} token setup`)
-  writeLine(stdout, 'Store your provider token in `.env.astroncode` or use the local login helper below:')
+  writeLine(stdout, `Use \`${ASTRONCODE_COMMAND} setup\` for the interactive provider wizard, or store your provider token in \`.env.astroncode\` with the local login helper below:`)
   writeLine(
     stdout,
     `${ASTRONCODE_COMMAND} auth login --token "<provider-token>" --base-url "<provider-url>" --model "<model-id>"`,
@@ -388,6 +432,21 @@ function handleSetupToken({ argv, projectRoot, stdout }) {
     handled: true,
     exitCode: 0,
   }
+}
+
+async function handleSetup({ argv, projectRoot, stdout }) {
+  if (isHelpRequest(argv)) {
+    writeSetupHelp(stdout)
+    return {
+      handled: true,
+      exitCode: 0,
+    }
+  }
+
+  return runSetupWizard({
+    projectRoot,
+    stdout,
+  })
 }
 
 async function handleDoctor({ argv, projectRoot, stdout }) {
@@ -455,7 +514,25 @@ async function handleDoctor({ argv, projectRoot, stdout }) {
   }
 }
 
-function handleLocalInstallInfo({ command, argv, projectRoot, stdout }) {
+async function handleGuiLaunch({ command, argv, projectRoot, stdout }) {
+  if (isHelpRequest(argv)) {
+    writeGuiHelp(stdout, command)
+    return {
+      handled: true,
+      exitCode: 0,
+    }
+  }
+
+  return launchAstronGui({
+    projectRoot,
+    stdout,
+    host: readOption(argv, 'host') || undefined,
+    port: Number(readOption(argv, 'port') || 0),
+    openBrowser: !hasFlag(argv, '--no-browser'),
+  })
+}
+
+async function handleLocalInstallInfo({ command, argv, projectRoot, stdout }) {
   if (isHelpRequest(argv)) {
     if (command === 'install') {
       writeInstallHelp(stdout)
@@ -470,10 +547,44 @@ function handleLocalInstallInfo({ command, argv, projectRoot, stdout }) {
   }
 
   const target = argv.find(arg => !arg.startsWith('-'))
+
+  if (command === 'install') {
+    const result = await runAstronInstall({ projectRoot })
+
+    writeLine(stdout, `${ASTRONCODE_NAME} local install`)
+    writeLine(stdout, `Node.js: ${result.nodeVersion} (${result.nodePath})`)
+    writeLine(stdout, `Project root: ${result.projectRoot}`)
+    writeLine(stdout, `Provider config: ${result.provider.ready ? 'ready' : 'missing'} (${result.provider.mode})`)
+    writeLine(stdout, `Config file: ${result.provider.configFile}`)
+    writeLine(stdout)
+    writeLine(stdout, `[${ASTRONCODE_NAME}] Installed command shims to ${result.shimResult.shimDir}`)
+    for (const shim of result.shimResult.shims) {
+      writeLine(stdout, `- ${path.join(result.shimResult.shimDir, shim.name)} -> ${shim.targetScript}`)
+    }
+    if (!result.shimResult.onPath) {
+      writeLine(stdout, `Warning: ${result.shimResult.shimDir} is not currently on PATH for this shell.`)
+    }
+    writeLine(stdout)
+    writeLine(stdout, `[${ASTRONCODE_NAME}] Repaired desktop launchers in ${result.desktopResult.desktopDir}`)
+    for (const launcher of result.desktopResult.launchers) {
+      writeLine(stdout, `- ${launcher.filePath}`)
+    }
+    if (target) {
+      writeLine(stdout, `Requested target: ${target}`)
+    }
+    if (!result.provider.ready) {
+      writeLine(stdout)
+      writeLine(stdout, `Next: run \`${ASTRONCODE_COMMAND} setup\` to configure your provider.`)
+    }
+
+    return {
+      handled: true,
+      exitCode: 0,
+    }
+  }
+
   const verb =
-    command === 'install'
-      ? 'already installed'
-      : command === 'upgrade'
+    command === 'upgrade'
         ? 'already up to date'
         : 'current local version'
 
@@ -571,12 +682,25 @@ export async function runLocalAstronCommand({
     return handleSetupToken({ argv: args.slice(1), projectRoot, stdout })
   }
 
+  if (command === 'setup') {
+    return handleSetup({ argv: args.slice(1), projectRoot, stdout })
+  }
+
   if (command === 'doctor') {
     return handleDoctor({ argv: args.slice(1), projectRoot, stdout })
   }
 
   if (command === 'install' || command === 'update' || command === 'upgrade') {
     return handleLocalInstallInfo({ command, argv: args.slice(1), projectRoot, stdout })
+  }
+
+  if (command === 'gui' || command === 'ui') {
+    return handleGuiLaunch({
+      command,
+      argv: args.slice(1),
+      projectRoot,
+      stdout,
+    })
   }
 
   return {

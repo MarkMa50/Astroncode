@@ -18,7 +18,7 @@
     "url": "https://github.com/atroncode/atroncode/issues"
   },
   "scripts": {
-    "test": "node --test ./tests/astron-env.test.mjs ./tests/local-command-overrides.test.mjs ./tests/runtime-branding.test.mjs ./tests/runtime-guards.test.mjs ./tests/runtime-exit-normalizer.test.mjs",
+    "test": "node --test ./tests/astron-env.test.mjs ./tests/setup-wizard.test.mjs ./tests/install-shims.test.mjs ./tests/install-local-runtime.test.mjs ./tests/local-command-overrides.test.mjs ./tests/gui-server.test.mjs ./tests/runtime-branding.test.mjs ./tests/runtime-guards.test.mjs ./tests/runtime-exit-normalizer.test.mjs ./tests/source-branding.test.mjs ./tests/source-input-compat.test.mjs",
     "prepare": "node -e \"if (!process.env.AUTHORIZED) { console.error('ERROR: Direct publishing is not allowed.\\nPlease see the release workflow documentation to publish this package.'); process.exit(1); }\"",
     "test:astron": "node --test ./tests/astron-env.test.mjs",
     "test:runtime": "node --test ./tests/runtime-branding.test.mjs ./tests/runtime-guards.test.mjs"

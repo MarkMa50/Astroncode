@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Astroncode 工作台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">A</div>
+          <div class="brand-copy">
+            <span class="brand-name">Astroncode</span>
+            <span class="brand-sub">本地工作台</span>
+          </div>
+        </div>
+
+        <div class="topbar-status">
+          <div class="status-chip">
+            <span class="status-k">工作区</span>
+            <span id="workspace-name" class="status-v">加载中...</span>
+          </div>
+          <div class="status-chip">
+            <span class="status-k">模型</span>
+            <span id="status-model" class="status-v">加载中...</span>
+          </div>
+          <div class="status-chip status-chip-live">
+            <span class="status-k">执行通道</span>
+            <span id="status-bridge" class="status-v">启动中</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace-grid">
+        <section class="conversation">
+          <div class="conversation-header">
+            <div>
+              <div class="section-eyebrow">会话</div>
+              <h1>开始一个任务</h1>
+            </div>
+
+            <div class="action-row">
+              <button class="action-pill" data-prompt="总结当前仓库，并给出下一步最值得做的事情。">总结项目</button>
+              <button class="action-pill" data-prompt="检查当前模型、配置和本地运行状态。">检查运行状态</button>
+              <button class="action-pill action-pill-ghost" data-action="clear">清空会话</button>
+            </div>
+          </div>
+
+          <section id="transcript" class="transcript" aria-live="polite">
+            <article class="message assistant">
+              <div class="message-role">Astroncode</div>
+              <div class="message-body">工作台已就绪。直接输入任务，我会通过本地核心执行。</div>
+            </article>
+          </section>
+
+          <form id="composer" class="composer">
+            <div class="composer-shell">
+              <textarea id="prompt-input" name="prompt" rows="3" placeholder="输入你的任务。Enter 发送，Shift+Enter 换行。"></textarea>
+              <div class="composer-actions">
+                <div class="composer-meta">
+                  <span id="request-state" class="request-state">空闲</span>
+                  <span id="workspace-path" class="request-path">检查本地项目中...</span>
+                </div>
+                <button id="send-button" type="submit">发送</button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <aside class="execution-panel">
+          <div class="execution-header">
+            <div class="section-eyebrow">执行区</div>
+            <h2>Astroncode 正在做什么</h2>
+          </div>
+
+          <div class="run-summary">
+            <div class="run-line">
+              <span class="run-k">当前任务</span>
+              <span id="current-task" class="run-v">等待输入</span>
+            </div>
+            <div class="run-line">
+              <span class="run-k">最新状态</span>
+              <span id="last-event" class="run-v">工作台已就绪</span>
+            </div>
+          </div>
+
+          <div id="execution-steps" class="execution-steps">
+            <div class="step is-active" data-step="accept">
+              <span class="step-dot"></span>
+              <span class="step-label">接收任务</span>
+            </div>
+            <div class="step" data-step="dispatch">
+              <span class="step-dot"></span>
+              <span class="step-label">调用本地核心</span>
+            </div>
+            <div class="step" data-step="model">
+              <span class="step-dot"></span>
+              <span class="step-label">等待模型返回</span>
+            </div>
+            <div class="step" data-step="finish">
+              <span class="step-dot"></span>
+              <span class="step-label">整理输出</span>
+            </div>
+          </div>
+
+          <div class="execution-log-wrap">
+            <div class="execution-log-title">执行时间线</div>
+            <div id="execution-log" class="execution-log">
+              <div class="execution-item">
+                <span class="execution-time">现在</span>
+                <span class="execution-copy">工作台外壳已加载</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meta-stack">
+            <div class="meta-line">
+              <span class="meta-k">Provider</span>
+              <span id="provider-url" class="meta-v">加载中...</span>
+            </div>
+            <div class="meta-line">
+              <span class="meta-k">配置文件</span>
+              <span id="config-file" class="meta-v">加载中...</span>
+            </div>
+            <div class="meta-line">
+              <span class="meta-k">凭据</span>
+              <span id="credential-mask" class="meta-v">加载中...</span>
+            </div>
+            <div class="meta-line">
+              <span class="meta-k">运行方式</span>
+              <span class="meta-v">本地 CLI 桥接</span>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

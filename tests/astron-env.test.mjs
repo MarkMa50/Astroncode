@@ -37,6 +37,7 @@ test('applyAstronEnv maps Astroncode variables to runtime variables', () => {
   assert.equal(env.ANTHROPIC_MODEL, 'provider/model-a')
   assert.equal(env.ANTHROPIC_SMALL_FAST_MODEL, 'provider/model-a')
   assert.equal(env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC, '1')
+  assert.equal(env.CLAUDE_CODE_ACCESSIBILITY, '1')
   assert.equal(env.DISABLE_TELEMETRY, '1')
   assert.equal(env.PATH, 'C:\\Windows\\System32')
 })
@@ -49,6 +50,14 @@ test('applyAstronEnv keeps explicit Anthropic values unless Astroncode overrides
 
   assert.equal(env.ANTHROPIC_API_KEY, 'existing-key')
   assert.equal(env.ANTHROPIC_MODEL, 'existing-model')
+})
+
+test('applyAstronEnv preserves an explicit accessibility override', () => {
+  const env = applyAstronEnv({
+    CLAUDE_CODE_ACCESSIBILITY: '0',
+  })
+
+  assert.equal(env.CLAUDE_CODE_ACCESSIBILITY, '0')
 })
 
 test('normalizeAstronBaseUrl converts the official OpenAI endpoint to the Anthropic endpoint', () => {

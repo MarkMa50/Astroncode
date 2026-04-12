@@ -1,7 +1,7 @@
 /**
  * Files are loaded in the following order:
  *
- * 1. Managed memory (eg. /etc/claude-code/CLAUDE.md) - Global instructions for all users
+ * 1. Managed memory (eg. /etc/astroncode/CLAUDE.md) - Global instructions for all users
  * 2. User memory (~/.claude/CLAUDE.md) - Private global instructions for all projects
  * 3. Project memory (CLAUDE.md, .claude/CLAUDE.md, and .claude/rules/*.md in project roots) - Instructions checked into the codebase
  * 4. Local memory (CLAUDE.local.md in project roots) - Private project-specific instructions
@@ -77,6 +77,14 @@ import { expandPath } from './path.js'
 import { pathInWorkingPath } from './permissions/filesystem.js'
 import { isSettingSourceEnabled } from './settings/constants.js'
 import { getInitialSettings } from './settings/settings.js'
+import {
+  isMemoryFileName,
+  RULES_DIR_NAME,
+  LEGACY_RULES_DIR_NAME,
+  getMemoryFileNames,
+  getLocalMemoryFileNames,
+  getRulesDirNames,
+} from './memoryFileNames.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const teamMemPaths = feature('TEAMMEM')
@@ -864,7 +872,7 @@ export const getMemoryFiles = memoize(
     // directories above the worktree but within the main repo — the worktree
     // already has its own checkout. CLAUDE.local.md is gitignored so it only
     // exists in the main repo and is still loaded.
-    // See: https://github.com/anthropics/claude-code/issues/29599
+    // See: https://github.com/anthropics/astroncode/issues/29599
     const gitRoot = findGitRoot(originalCwd)
     const canonicalRoot = findCanonicalGitRoot(originalCwd)
     const isNestedWorktree =
@@ -883,96 +891,112 @@ export const getMemoryFiles = memoize(
         pathInWorkingPath(dir, canonicalRoot) &&
         !pathInWorkingPath(dir, gitRoot)
 
-      // Try reading CLAUDE.md (Project) - only if projectSettings is enabled
+      // Try reading memory files (Project) - only if projectSettings is enabled
       if (isSettingSourceEnabled('projectSettings') && !skipProject) {
-        const projectPath = join(dir, 'CLAUDE.md')
-        result.push(
-          ...(await processMemoryFile(
-            projectPath,
-            'Project',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+        // Check both ASTRONCODE.md and CLAUDE.md (priority to new name)
+        for (const memoryFileName of getMemoryFileNames()) {
+          const projectPath = join(dir, memoryFileName)
+          result.push(
+            ...(await processMemoryFile(
+              projectPath,
+              'Project',
+              processedPaths,
+              includeExternal,
+            )),
+          )
+        }
 
-        // Try reading .claude/CLAUDE.md (Project)
-        const dotClaudePath = join(dir, '.claude', 'CLAUDE.md')
-        result.push(
-          ...(await processMemoryFile(
-            dotClaudePath,
-            'Project',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+        // Try reading .astroncode/ASTRONCODE.md and .claude/CLAUDE.md (Project)
+        for (const rulesDirName of getRulesDirNames()) {
+          const memoryPath = join(dir, rulesDirName, rulesDirName === RULES_DIR_NAME ? 'ASTRONCODE.md' : 'CLAUDE.md')
+          result.push(
+            ...(await processMemoryFile(
+              memoryPath,
+              'Project',
+              processedPaths,
+              includeExternal,
+            )),
+          )
+        }
 
-        // Try reading .claude/rules/*.md files (Project)
-        const rulesDir = join(dir, '.claude', 'rules')
-        result.push(
-          ...(await processMdRules({
-            rulesDir,
-            type: 'Project',
-            processedPaths,
-            includeExternal,
-            conditionalRule: false,
-          })),
-        )
+        // Try reading .astroncode/rules/*.md and .claude/rules/*.md files (Project)
+        for (const rulesDirName of getRulesDirNames()) {
+          const rulesDir = join(dir, rulesDirName, 'rules')
+          result.push(
+            ...(await processMdRules({
+              rulesDir,
+              type: 'Project',
+              processedPaths,
+              includeExternal,
+              conditionalRule: false,
+            })),
+          )
+        }
       }
 
-      // Try reading CLAUDE.local.md (Local) - only if localSettings is enabled
+      // Try reading local memory files (Local) - only if localSettings is enabled
       if (isSettingSourceEnabled('localSettings')) {
-        const localPath = join(dir, 'CLAUDE.local.md')
-        result.push(
-          ...(await processMemoryFile(
-            localPath,
-            'Local',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+        // Check both ASTRONCODE.local.md and CLAUDE.local.md (priority to new name)
+        for (const localMemoryFileName of getLocalMemoryFileNames()) {
+          const localPath = join(dir, localMemoryFileName)
+          result.push(
+            ...(await processMemoryFile(
+              localPath,
+              'Local',
+              processedPaths,
+              includeExternal,
+            )),
+          )
+        }
       }
     }
 
-    // Process CLAUDE.md from additional directories (--add-dir) if env var is enabled
-    // This is controlled by CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD and defaults to off
+    // Process memory files from additional directories (--add-dir) if env var is enabled
+    // This is controlled by ASTRONCODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD and defaults to off
     // Note: we don't check isSettingSourceEnabled('projectSettings') here because --add-dir
     // is an explicit user action and the SDK defaults settingSources to [] when not specified
-    if (isEnvTruthy(process.env.CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD)) {
+    if (isEnvTruthy(process.env.ASTRONCODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD)) {
       const additionalDirs = getAdditionalDirectoriesForClaudeMd()
       for (const dir of additionalDirs) {
-        // Try reading CLAUDE.md from the additional directory
-        const projectPath = join(dir, 'CLAUDE.md')
-        result.push(
-          ...(await processMemoryFile(
-            projectPath,
-            'Project',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+        // Try reading memory files from the additional directory
+        for (const memoryFileName of getMemoryFileNames()) {
+          const projectPath = join(dir, memoryFileName)
+          result.push(
+            ...(await processMemoryFile(
+              projectPath,
+              'Project',
+              processedPaths,
+              includeExternal,
+            )),
+          )
+        }
 
-        // Try reading .claude/CLAUDE.md from the additional directory
-        const dotClaudePath = join(dir, '.claude', 'CLAUDE.md')
-        result.push(
-          ...(await processMemoryFile(
-            dotClaudePath,
-            'Project',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+        // Try reading .astroncode/ASTRONCODE.md and .claude/CLAUDE.md from the additional directory
+        for (const rulesDirName of getRulesDirNames()) {
+          const memoryPath = join(dir, rulesDirName, rulesDirName === RULES_DIR_NAME ? 'ASTRONCODE.md' : 'CLAUDE.md')
+          result.push(
+            ...(await processMemoryFile(
+              memoryPath,
+              'Project',
+              processedPaths,
+              includeExternal,
+            )),
+          )
+        }
 
-        // Try reading .claude/rules/*.md files from the additional directory
-        const rulesDir = join(dir, '.claude', 'rules')
-        result.push(
-          ...(await processMdRules({
-            rulesDir,
-            type: 'Project',
-            processedPaths,
-            includeExternal,
-            conditionalRule: false,
-          })),
-        )
+        // Try reading rules files from the additional directory
+        for (const rulesDirName of getRulesDirNames()) {
+          const rulesDir = join(dir, rulesDirName, 'rules')
+          result.push(
+            ...(await processMdRules({
+              rulesDir,
+              type: 'Project',
+              processedPaths,
+              includeExternal,
+              conditionalRule: false,
+            })),
+          )
+        }
       }
     }
 
@@ -1239,7 +1263,7 @@ export async function getManagedAndUserConditionalRules(
 
 /**
  * Gets memory files for a single nested directory (between CWD and target).
- * Loads CLAUDE.md, unconditional rules, and conditional rules for that directory.
+ * Loads memory files, unconditional rules, and conditional rules for that directory.
  *
  * @param dir The directory to process
  * @param targetPath The target file path (for conditional rule matching)
@@ -1253,65 +1277,76 @@ export async function getMemoryFilesForNestedDirectory(
 ): Promise<MemoryFileInfo[]> {
   const result: MemoryFileInfo[] = []
 
-  // Process project memory files (CLAUDE.md and .claude/CLAUDE.md)
+  // Process project memory files (ASTRONCODE.md, CLAUDE.md, etc.)
   if (isSettingSourceEnabled('projectSettings')) {
-    const projectPath = join(dir, 'CLAUDE.md')
-    result.push(
-      ...(await processMemoryFile(
-        projectPath,
-        'Project',
-        processedPaths,
-        false,
-      )),
-    )
-    const dotClaudePath = join(dir, '.claude', 'CLAUDE.md')
-    result.push(
-      ...(await processMemoryFile(
-        dotClaudePath,
-        'Project',
-        processedPaths,
-        false,
-      )),
-    )
+    // Check both ASTRONCODE.md and CLAUDE.md (priority to new name)
+    for (const memoryFileName of getMemoryFileNames()) {
+      const projectPath = join(dir, memoryFileName)
+      result.push(
+        ...(await processMemoryFile(
+          projectPath,
+          'Project',
+          processedPaths,
+          false,
+        )),
+      )
+    }
+    // Check .astroncode/ASTRONCODE.md and .claude/CLAUDE.md
+    for (const rulesDirName of getRulesDirNames()) {
+      const memoryPath = join(dir, rulesDirName, rulesDirName === RULES_DIR_NAME ? 'ASTRONCODE.md' : 'CLAUDE.md')
+      result.push(
+        ...(await processMemoryFile(
+          memoryPath,
+          'Project',
+          processedPaths,
+          false,
+        )),
+      )
+    }
   }
 
-  // Process local memory file (CLAUDE.local.md)
+  // Process local memory files (ASTRONCODE.local.md, CLAUDE.local.md)
   if (isSettingSourceEnabled('localSettings')) {
-    const localPath = join(dir, 'CLAUDE.local.md')
-    result.push(
-      ...(await processMemoryFile(localPath, 'Local', processedPaths, false)),
-    )
+    for (const localMemoryFileName of getLocalMemoryFileNames()) {
+      const localPath = join(dir, localMemoryFileName)
+      result.push(
+        ...(await processMemoryFile(localPath, 'Local', processedPaths, false)),
+      )
+    }
   }
 
-  const rulesDir = join(dir, '.claude', 'rules')
+  // Process rules from both .astroncode/rules and .claude/rules
+  for (const rulesDirName of getRulesDirNames()) {
+    const rulesDir = join(dir, rulesDirName, 'rules')
 
-  // Process project unconditional .claude/rules/*.md files, which were not eagerly loaded
-  // Use a separate processedPaths set to avoid marking conditional rule files as processed
-  const unconditionalProcessedPaths = new Set(processedPaths)
-  result.push(
-    ...(await processMdRules({
-      rulesDir,
-      type: 'Project',
-      processedPaths: unconditionalProcessedPaths,
-      includeExternal: false,
-      conditionalRule: false,
-    })),
-  )
+    // Process project unconditional rules/*.md files, which were not eagerly loaded
+    // Use a separate processedPaths set to avoid marking conditional rule files as processed
+    const unconditionalProcessedPaths = new Set(processedPaths)
+    result.push(
+      ...(await processMdRules({
+        rulesDir,
+        type: 'Project',
+        processedPaths: unconditionalProcessedPaths,
+        includeExternal: false,
+        conditionalRule: false,
+      })),
+    )
 
-  // Process project conditional .claude/rules/*.md files
-  result.push(
-    ...(await processConditionedMdRules(
-      targetPath,
-      rulesDir,
-      'Project',
-      processedPaths,
-      false,
-    )),
-  )
+    // Process project conditional rules/*.md files
+    result.push(
+      ...(await processConditionedMdRules(
+        targetPath,
+        rulesDir,
+        'Project',
+        processedPaths,
+        false,
+      )),
+    )
 
-  // processedPaths must be seeded with unconditional paths for subsequent directories
-  for (const path of unconditionalProcessedPaths) {
-    processedPaths.add(path)
+    // processedPaths must be seeded with unconditional paths for subsequent directories
+    for (const path of unconditionalProcessedPaths) {
+      processedPaths.add(path)
+    }
   }
 
   return result
@@ -1430,20 +1465,21 @@ export async function shouldShowClaudeMdExternalIncludesWarning(): Promise<boole
 }
 
 /**
- * Check if a file path is a memory file (CLAUDE.md, CLAUDE.local.md, or .claude/rules/*.md)
+ * Check if a file path is a memory file (ASTRONCODE.md, CLAUDE.md, ASTRONCODE.local.md, CLAUDE.local.md, or .astroncode/.claude/rules/*.md)
  */
 export function isMemoryFilePath(filePath: string): boolean {
   const name = basename(filePath)
 
-  // CLAUDE.md or CLAUDE.local.md anywhere
-  if (name === 'CLAUDE.md' || name === 'CLAUDE.local.md') {
+  // Memory files (ASTRONCODE.md, CLAUDE.md, ASTRONCODE.local.md, CLAUDE.local.md) anywhere
+  if (isMemoryFileName(name)) {
     return true
   }
 
-  // .md files in .claude/rules/ directories
+  // .md files in .astroncode/rules/ or .claude/rules/ directories
   if (
     name.endsWith('.md') &&
-    filePath.includes(`${sep}.claude${sep}rules${sep}`)
+    (filePath.includes(`${sep}${RULES_DIR_NAME}${sep}rules${sep}`) ||
+      filePath.includes(`${sep}${LEGACY_RULES_DIR_NAME}${sep}rules${sep}`))
   ) {
     return true
   }

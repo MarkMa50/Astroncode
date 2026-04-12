@@ -182,5 +182,12 @@ export function applyAstronEnv(baseEnv) {
     env.DISABLE_TELEMETRY = '1'
   }
 
+  // On Windows terminals, IME/CJK input behaves more reliably when the
+  // native cursor stays visible instead of being replaced by the faux block
+  // cursor used in the default fullscreen input path.
+  if (process.platform === 'win32' && !env.CLAUDE_CODE_ACCESSIBILITY) {
+    env.CLAUDE_CODE_ACCESSIBILITY = '1'
+  }
+
   return env
 }

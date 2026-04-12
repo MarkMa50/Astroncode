@@ -265,7 +265,7 @@ export function ModelPicker(t0) {
   } else {
     t15 = $[41];
   }
-  const t16 = headerText ?? "Switch between Claude models. Applies to this session and future Claude Code sessions. For other/previous model names, specify with --model.";
+  const t16 = headerText ?? "Switch between Astron models. Applies to this session and future Astroncode sessions. For other or previous model IDs, specify with --model.";
   let t17;
   if ($[42] !== t16) {
     t17 = <Text dimColor={true}>{t16}</Text>;
@@ -407,7 +407,7 @@ function EffortLevelIndicator(t0) {
   const {
     effort
   } = t0;
-  const t1 = effort ? "claude" : "subtle";
+  const t1 = effort ? "astron" : "subtle";
   const t2 = effort ?? "low";
   let t3;
   if ($[0] !== t2) {
