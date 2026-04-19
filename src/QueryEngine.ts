@@ -7,7 +7,6 @@ import {
   isSessionPersistenceDisabled,
 } from 'src/bootstrap/state.js'
 import type {
-  PermissionMode,
   SDKCompactBoundaryMessage,
   SDKMessage,
   SDKPermissionDenial,
@@ -541,8 +540,7 @@ export class QueryEngine {
       tools,
       mcpClients,
       model: mainLoopModel,
-      permissionMode: initialAppState.toolPermissionContext
-        .mode as PermissionMode, // TODO: avoid the cast
+      permissionMode: initialAppState.toolPermissionContext.mode,
       commands,
       agents,
       skills,

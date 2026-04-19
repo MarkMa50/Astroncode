@@ -13,6 +13,12 @@ const baseConfig = {
       'CHANGELOG.md',
       'CONTRIBUTING.md',
       'docs/**/*.md',
+      'src/constants/querySource.ts',
+      'src/utils/index.ts',
+      'src/utils/plugins/index.ts',
+      'src/utils/ui/index.ts',
+      'src/types/utils.ts',
+      'tests/services-api-error.test.mjs',
       'src/utils/core/index.ts',
       'tests/utils-core.test.mjs',
     ],
@@ -157,6 +163,43 @@ test('classifyPath allows explicitly shared utility index and utility tests', ()
       type: 'shared',
       sourcePath: 'tests/utils-core.test.mjs',
       targetPath: 'tests/utils-core.test.mjs',
+      reason: 'matched shared include rule',
+    },
+  )
+})
+
+test('classifyPath allows explicitly shared constants, type barrels, and service tests', () => {
+  const config = {
+    ...baseConfig,
+    blocked: ['README.md'],
+  }
+
+  assert.deepEqual(
+    classifyPath('src/constants/querySource.ts', config),
+    {
+      type: 'shared',
+      sourcePath: 'src/constants/querySource.ts',
+      targetPath: 'src/constants/querySource.ts',
+      reason: 'matched shared include rule',
+    },
+  )
+
+  assert.deepEqual(
+    classifyPath('src/utils/index.ts', config),
+    {
+      type: 'shared',
+      sourcePath: 'src/utils/index.ts',
+      targetPath: 'src/utils/index.ts',
+      reason: 'matched shared include rule',
+    },
+  )
+
+  assert.deepEqual(
+    classifyPath('tests/services-api-error.test.mjs', config),
+    {
+      type: 'shared',
+      sourcePath: 'tests/services-api-error.test.mjs',
+      targetPath: 'tests/services-api-error.test.mjs',
       reason: 'matched shared include rule',
     },
   )

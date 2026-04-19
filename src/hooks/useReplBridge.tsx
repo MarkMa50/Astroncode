@@ -10,7 +10,7 @@ import type { Command } from '../commands.js';
 import { getSlashCommandToolSkills, isBridgeSafeCommand } from '../commands.js';
 import { getRemoteSessionUrl } from '../constants/product.js';
 import { useNotifications } from '../context/notifications.js';
-import type { PermissionMode, SDKMessage } from '../entrypoints/agentSdkTypes.js';
+import type { SDKMessage } from '../entrypoints/agentSdkTypes.js';
 import type { SDKControlResponse } from '../entrypoints/sdk/controlTypes.js';
 import { Text } from '../ink.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js';
@@ -306,8 +306,7 @@ export function useReplBridge(messages: Message[], setMessages: (action: React.S
                           tools: [],
                           mcpClients: [],
                           model: mainLoopModelRef.current,
-                          permissionMode: state_0.toolPermissionContext.mode as PermissionMode,
-                          // TODO: avoid the cast
+                          permissionMode: state_0.toolPermissionContext.mode,
                           // Remote clients can only invoke bridge-safe commands —
                           // advertising unsafe ones (local-jsx, unallowed local)
                           // would let mobile/web attempt them and hit errors.

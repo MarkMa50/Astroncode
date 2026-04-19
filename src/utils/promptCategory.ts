@@ -18,7 +18,8 @@ export function getQuerySourceForAgent(
   isBuiltInAgent: boolean,
 ): QuerySource {
   if (isBuiltInAgent) {
-    // TODO: avoid this cast
+    // Cast is needed because QuerySource is a broad string type and
+    // TypeScript can't infer that template literals match it
     return agentType
       ? (`agent:builtin:${agentType}` as QuerySource)
       : 'agent:default'
