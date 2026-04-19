@@ -1,8 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import os from 'node:os'
+import path from 'node:path'
 
 import {
   applyAstronEnv,
+  getAstronEnvFilePath,
+  getAstronRuntimeCacheDir,
   normalizeAstronBaseUrl,
   parseEnvFileContent,
   updateEnvFileContent,
@@ -88,4 +92,77 @@ test('updateEnvFileContent preserves comments while updating and removing keys',
   assert.match(updated, /ASTRONCODE_MODEL=astron-code-1\.0\.10/)
   assert.match(updated, /ASTRONCODE_API_KEY=key-123/)
   assert.match(updated, /ASTRONCODE_BASE_URL=https:\/\/example\.com\/v2/)
+})
+
+test('getAstronEnvFilePath prefers a local env file when present', () => {
+  const cwd = 'C:\\Users\\markw\\astroncode'
+  assert.equal(
+    getAstronEnvFilePath(cwd),
+    path.join(cwd, '.env.astroncode'),
+  )
+})
+
+test('getAstronEnvFilePath honors config file and config dir overrides', () => {
+  const originalConfigFile = process.env.ASTRONCODE_CONFIG_FILE
+  const originalConfigDir = process.env.ASTRONCODE_CONFIG_DIR
+
+  try {
+    process.env.ASTRONCODE_CONFIG_FILE = 'D:\\Astron\\custom.env'
+    assert.equal(
+      getAstronEnvFilePath('C:\\repo'),
+      path.resolve('D:\\Astron\\custom.env'),
+    )
+
+    delete process.env.ASTRONCODE_CONFIG_FILE
+    process.env.ASTRONCODE_CONFIG_DIR = 'D:\\Astron\\config'
+    assert.equal(
+      getAstronEnvFilePath('C:\\repo'),
+      path.join(path.resolve('D:\\Astron\\config'), '.env.astroncode'),
+    )
+  } finally {
+    if (originalConfigFile == null) {
+      delete process.env.ASTRONCODE_CONFIG_FILE
+    } else {
+      process.env.ASTRONCODE_CONFIG_FILE = originalConfigFile
+    }
+
+    if (originalConfigDir == null) {
+      delete process.env.ASTRONCODE_CONFIG_DIR
+    } else {
+      process.env.ASTRONCODE_CONFIG_DIR = originalConfigDir
+    }
+  }
+})
+
+test('getAstronRuntimeCacheDir uses Windows roaming config by default and supports override', () => {
+  const originalAppData = process.env.APPDATA
+  const originalCacheDir = process.env.ASTRONCODE_RUNTIME_CACHE_DIR
+  const expectedDefault = path.join(
+    process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
+    'Astroncode',
+    'runtime-cache',
+  )
+
+  try {
+    delete process.env.ASTRONCODE_RUNTIME_CACHE_DIR
+    assert.equal(getAstronRuntimeCacheDir(), expectedDefault)
+
+    process.env.ASTRONCODE_RUNTIME_CACHE_DIR = 'D:\\Astron\\runtime-cache'
+    assert.equal(
+      getAstronRuntimeCacheDir(),
+      path.resolve('D:\\Astron\\runtime-cache'),
+    )
+  } finally {
+    if (originalAppData == null) {
+      delete process.env.APPDATA
+    } else {
+      process.env.APPDATA = originalAppData
+    }
+
+    if (originalCacheDir == null) {
+      delete process.env.ASTRONCODE_RUNTIME_CACHE_DIR
+    } else {
+      process.env.ASTRONCODE_RUNTIME_CACHE_DIR = originalCacheDir
+    }
+  }
 })

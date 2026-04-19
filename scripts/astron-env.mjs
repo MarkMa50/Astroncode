@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 const ASTRON_ENV_FILE = '.env.astroncode'
@@ -55,8 +56,54 @@ export function parseEnvFileContent(content) {
   return entries
 }
 
+function getAstronUserConfigDir() {
+  const configFileOverride = process.env.ASTRONCODE_CONFIG_FILE
+  if (configFileOverride && String(configFileOverride).trim()) {
+    return path.dirname(path.resolve(String(configFileOverride).trim()))
+  }
+
+  const dirOverride = process.env.ASTRONCODE_CONFIG_DIR
+  if (dirOverride && String(dirOverride).trim()) {
+    return path.resolve(String(dirOverride).trim())
+  }
+
+  const home = os.homedir()
+
+  if (process.platform === 'darwin') {
+    return path.join(home, 'Library', 'Application Support', 'Astroncode')
+  }
+
+  if (process.platform === 'win32') {
+    return path.join(
+      process.env.APPDATA || path.join(home, 'AppData', 'Roaming'),
+      'Astroncode',
+    )
+  }
+
+  return path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'astroncode')
+}
+
+export function getAstronRuntimeCacheDir() {
+  const cacheDirOverride = process.env.ASTRONCODE_RUNTIME_CACHE_DIR
+  if (cacheDirOverride && String(cacheDirOverride).trim()) {
+    return path.resolve(String(cacheDirOverride).trim())
+  }
+
+  return path.join(getAstronUserConfigDir(), 'runtime-cache')
+}
+
 export function getAstronEnvFilePath(cwd = process.cwd()) {
-  return path.join(cwd, ASTRON_ENV_FILE)
+  const configFileOverride = process.env.ASTRONCODE_CONFIG_FILE
+  if (configFileOverride && String(configFileOverride).trim()) {
+    return path.resolve(String(configFileOverride).trim())
+  }
+
+  const localPath = path.join(cwd, ASTRON_ENV_FILE)
+  if (fs.existsSync(localPath)) {
+    return localPath
+  }
+
+  return path.join(getAstronUserConfigDir(), ASTRON_ENV_FILE)
 }
 
 export function readAstronEnvConfig(cwd = process.cwd()) {
@@ -144,6 +191,7 @@ export function writeAstronEnvFile(cwd = process.cwd(), changes = {}) {
   const current = readAstronEnvConfig(cwd)
   const content = updateEnvFileContent(current.content, changes)
 
+  fs.mkdirSync(path.dirname(current.filePath), { recursive: true })
   fs.writeFileSync(current.filePath, content, 'utf8')
 
   return {

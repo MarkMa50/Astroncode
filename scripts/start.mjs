@@ -2,7 +2,11 @@ import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { applyAstronEnv, loadAstronEnvFile } from './astron-env.mjs'
+import {
+  applyAstronEnv,
+  getAstronRuntimeCacheDir,
+  loadAstronEnvFile,
+} from './astron-env.mjs'
 import { ASTRONCODE_NAME } from './astron-meta.mjs'
 import { runLocalAstronCommand } from './local-command-overrides.mjs'
 import { ensureRuntimeBrandingBundle } from './runtime-branding.mjs'
@@ -10,6 +14,7 @@ import {
   isPrintInvocation,
   normalizeWindowsPrintRuntimeResult,
 } from './runtime-exit-normalizer.mjs'
+import { startRuntimeAutoSyncLoop } from './runtime-auto-sync.mjs'
 import { detectUnsupportedAstronInvocation } from './runtime-guards.mjs'
 import { runSetupWizard, shouldAutoLaunchSetup } from './setup-wizard.mjs'
 
@@ -17,9 +22,15 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const projectRoot = path.resolve(__dirname, '..')
 const cliEntry = path.join(projectRoot, 'cli.js')
-const runtimeCacheDir = path.join(projectRoot, '.astroncode-runtime')
+const runtimeCacheDir = getAstronRuntimeCacheDir()
 const astronSystemPromptFile = path.join(__dirname, 'astron-system-prompt.txt')
+const startupSyncScript = path.join(__dirname, 'main-windows-sync.mjs')
 const launchArgs = process.argv.slice(2)
+const initialConfig = loadAstronEnvFile(projectRoot)
+const mergedEnv = applyAstronEnv({
+  ...process.env,
+  ...initialConfig,
+})
 
 // Windows: Set stdin to UTF-8 mode for Chinese/CJK input
 if (process.platform === 'win32' && process.stdin.isTTY) {
@@ -44,17 +55,21 @@ const runtimeArgs = hasPromptOverride(launchArgs)
   ? launchArgs
   : ['--append-system-prompt-file', astronSystemPromptFile, ...launchArgs]
 
-const localCommand = await runLocalAstronCommand({
-  argv: launchArgs,
-  projectRoot,
-  stdout: process.stdout,
-})
+let localCommand
+try {
+  localCommand = await runLocalAstronCommand({
+    argv: launchArgs,
+    projectRoot,
+    stdout: process.stdout,
+  })
+} catch (error) {
+  console.error(`[${ASTRONCODE_NAME}] Failed to run local command:`, error.message)
+  process.exit(1)
+}
 
 if (localCommand.handled) {
   process.exit(localCommand.exitCode ?? 0)
 }
-
-const initialConfig = loadAstronEnvFile(projectRoot)
 
 if (shouldAutoLaunchSetup({ argv: launchArgs, entries: initialConfig })) {
   const setupResult = await runSetupWizard({
@@ -85,9 +100,10 @@ try {
   process.exit(1)
 }
 
-const mergedEnv = applyAstronEnv({
-  ...process.env,
-  ...loadAstronEnvFile(projectRoot),
+const stopRuntimeAutoSync = startRuntimeAutoSyncLoop({
+  scriptPath: startupSyncScript,
+  projectRoot,
+  env: mergedEnv,
 })
 
 const shouldCapturePrintRuntime =
@@ -117,6 +133,7 @@ const exitCode = await new Promise(resolve => {
   }
 
   child.once('close', code => {
+    stopRuntimeAutoSync()
     if (!shouldCapturePrintRuntime) {
       resolve(code ?? 0)
       return
@@ -135,6 +152,7 @@ const exitCode = await new Promise(resolve => {
   })
 
   child.once('error', error => {
+    stopRuntimeAutoSync()
     console.error(`[${ASTRONCODE_NAME}] Failed to start:`, error.message)
     resolve(1)
   })
