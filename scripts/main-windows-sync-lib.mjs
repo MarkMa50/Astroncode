@@ -137,10 +137,16 @@ function sameContent(left, right) {
   }
 
   if (Buffer.isBuffer(left) && Buffer.isBuffer(right)) {
-    return left.equals(right)
+    if (left.equals(right)) {
+      return true
+    }
+
+    const leftText = left.toString('utf8')
+    const rightText = right.toString('utf8')
+    return leftText.replace(/\r\n/g, '\n') === rightText.replace(/\r\n/g, '\n')
   }
 
-  return String(left) === String(right)
+  return String(left).replace(/\r\n/g, '\n') === String(right).replace(/\r\n/g, '\n')
 }
 
 export function planSync({

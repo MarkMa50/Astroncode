@@ -148,3 +148,30 @@ test('planSync copies shared docs but reports preserve and blocked conflicts sep
     },
   ])
 })
+
+test('planSync treats LF and CRLF text files as equivalent for shared sync decisions', () => {
+  const sourceFiles = new Map([
+    ['scripts/version-files.mjs', 'export const A = 1\nexport const B = 2\n'],
+  ])
+  const targetFiles = new Map([
+    ['scripts/version-files.mjs', 'export const A = 1\r\nexport const B = 2\r\n'],
+  ])
+  const config = {
+    ...baseConfig,
+    shared: {
+      ...baseConfig.shared,
+      include: ['scripts/version-files.mjs'],
+    },
+    blocked: [],
+  }
+
+  const plan = planSync({
+    sourceFiles,
+    targetFiles,
+    config,
+  })
+
+  assert.deepEqual(plan.copyActions, [])
+  assert.deepEqual(plan.preserveConflicts, [])
+  assert.deepEqual(plan.blockedConflicts, [])
+})
