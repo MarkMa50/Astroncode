@@ -1,0 +1,38 @@
+{
+  "source": {
+    "repository": "MarkMa50/Astroncode----src",
+    "branch": "main",
+    "localClone": "../Astroncode-main"
+  },
+  "target": {
+    "repository": "MarkMa50/Astroncode",
+    "branch": "windows"
+  },
+  "shared": {
+    "include": [
+      "CHANGELOG.md",
+      "CONTRIBUTING.md",
+      "docs/**/*.md"
+    ],
+    "exclude": [
+      "docs/superpowers/**"
+    ]
+  },
+  "preserve": [
+    ".claude/**",
+    "artifacts/**",
+    "gui/**",
+    "astroncode.ps1",
+    "astroncode.cmd",
+    "astroncode-gui.ps1",
+    "astroncode-gui.sh",
+    "create-shortcut.ps1",
+    "create-shortcut.vbs",
+    "update-shortcut.ps1",
+    "atroncode.ps1",
+    "atroncode.cmd",
+    "atroncode.sh"
+  ],
+  "blocked": [],
+  "renameMap": []
+}
