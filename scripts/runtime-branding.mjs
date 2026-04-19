@@ -1,4 +1,5 @@
 import { additionalBrandingRules, additionalBrandingPatterns, clawdReplacementRules, projectGuidanceRules, projectGuidancePatterns, modelNoticeRules, modelNoticePatterns, subscriptionRules, consoleRules, extendedUrlRules, githubRules, modelAliasRules, extendedPatterns, moreModelRules, moreModelPatterns, fixRules, fixPatterns } from './branding-extension.mjs';
+import { applyAnthropicCatchAll } from './js-ast-strings.mjs'
 import { createHash } from 'node:crypto'
 import { access, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -39,6 +40,7 @@ function createRuntimeWelcomeArt() {
 const RUNTIME_WELCOME_ART = createRuntimeWelcomeArt()
 const RUNTIME_WELCOME_EMPTY = 'function FF8(q){return""}'
 const RUNTIME_NOTICE_DISABLED = 'async function lcY(){return null}'
+const UPSTREAM_BUNDLE_VERSION = '2.1.88'
 const EARLY_INPUT_WINDOWS_GUARD_FROM =
   'if(!process.stdin.isTTY||jT6||process.argv.includes("-p")||process.argv.includes("--print"))return;'
 const EARLY_INPUT_WINDOWS_GUARD_TO =
@@ -460,14 +462,6 @@ export const brandingReplacements = [
     replace: 'Astroncode local runtime ready · Astron provider connected',
   },
   {
-    pattern: /\bAnthropic\b/g,
-    replace: 'Astron',
-  },
-  {
-    pattern: /\banthropic\b/g,
-    replace: 'astron',
-  },
-  {
     pattern: /claude:"rgb\(215,119,87\)"/g,
     replace: 'claude:"rgb(96,120,255)"',
   },
@@ -553,7 +547,11 @@ export const brandingReplacements = [
   },
 ]
 
-export function applyBrandingReplacements(source) {
+export function applyBrandingReplacements(source, options = {}) {
+  const {
+    warnOnMissingVersionString = false,
+    sourceLabel = 'runtime bundle',
+  } = options
   let patched = source
   let replacements = 0
 
@@ -577,6 +575,16 @@ export function applyBrandingReplacements(source) {
     }
   }
 
+  if (warnOnMissingVersionString && !source.includes(UPSTREAM_BUNDLE_VERSION)) {
+    console.warn(
+      `[Astroncode branding] WARNING: upstream bundle version "${UPSTREAM_BUNDLE_VERSION}" ` +
+      `not found in ${sourceLabel}. Update UPSTREAM_BUNDLE_VERSION in runtime-branding.mjs ` +
+      `to match the new upstream version string.`,
+    )
+  }
+
+  patched = applyAnthropicCatchAll(patched)
+
   return {
     patched,
     replacements,
@@ -589,7 +597,10 @@ export function patchRuntimeBrandingText(source) {
 
 export async function ensureRuntimeBrandingFile(runtimeFile) {
   const source = await readFile(runtimeFile, 'utf8')
-  const { patched, replacements } = applyBrandingReplacements(source)
+  const { patched, replacements } = applyBrandingReplacements(source, {
+    warnOnMissingVersionString: true,
+    sourceLabel: path.basename(runtimeFile),
+  })
 
   if (patched !== source) {
     await writeFile(runtimeFile, patched, 'utf8')
@@ -611,7 +622,10 @@ function buildRuntimeBundleName(runtimeFile, patchedSource) {
 
 export async function ensureRuntimeBrandingBundle(runtimeFile, outputDir) {
   const source = await readFile(runtimeFile, 'utf8')
-  const { patched, replacements } = applyBrandingReplacements(source)
+  const { patched, replacements } = applyBrandingReplacements(source, {
+    warnOnMissingVersionString: true,
+    sourceLabel: path.basename(runtimeFile),
+  })
 
   await mkdir(outputDir, { recursive: true })
 

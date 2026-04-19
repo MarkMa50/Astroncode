@@ -14,9 +14,11 @@
       "CONTRIBUTING.md",
       "docs/**/*.md",
       "scripts/astron-env.mjs",
+      "scripts/js-ast-strings.mjs",
       "scripts/version-files.mjs",
       "scripts/ensure-local-version.mjs",
       "scripts/bump-local-version.mjs",
+      "scripts/setup-wizard.mjs",
       "tests/version-sync.test.mjs"
     ],
     "exclude": [

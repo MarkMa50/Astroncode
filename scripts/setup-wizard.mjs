@@ -25,6 +25,45 @@ function cleanValue(value) {
   return String(value ?? '').trim()
 }
 
+function looksLikeBaseUrl(value) {
+  const cleaned = cleanValue(value)
+  return cleaned.startsWith('http://') || cleaned.startsWith('https://')
+}
+
+function looksLikeCredential(value) {
+  const cleaned = cleanValue(value)
+
+  if (!cleaned) {
+    return false
+  }
+
+  if (looksLikeBaseUrl(cleaned)) {
+    return false
+  }
+
+  if (/\s/.test(cleaned)) {
+    return false
+  }
+
+  return cleaned.length >= 12
+}
+
+function inferModeFromCredential(credential, fallbackMode = 'token') {
+  const cleaned = cleanValue(credential).toLowerCase()
+
+  if (
+    cleaned.startsWith('sk-') ||
+    cleaned.startsWith('rk-') ||
+    cleaned.startsWith('api_') ||
+    cleaned.startsWith('api-') ||
+    cleaned.startsWith('key-')
+  ) {
+    return 'api-key'
+  }
+
+  return fallbackMode === 'api-key' ? 'api-key' : 'token'
+}
+
 function normalizeStoredBaseUrl(baseUrl) {
   return cleanValue(baseUrl).replace(/\/+$/, '')
 }
@@ -103,6 +142,76 @@ async function askRequiredValue(bridge, message, fallback = '') {
   }
 }
 
+async function askBaseUrl(bridge, stdout, message, fallback = '') {
+  while (true) {
+    const answer = await askRequiredValue(bridge, message, fallback)
+
+    if (looksLikeBaseUrl(answer)) {
+      return answer
+    }
+
+    writeLine(stdout, 'Please enter a valid URL starting with http:// or https://')
+  }
+}
+
+async function askProviderMode({ bridge, stdout, currentMode }) {
+  const modeChoices = {
+    token: 'token',
+    t: 'token',
+    'api-key': 'api-key',
+    apikey: 'api-key',
+    api: 'api-key',
+    key: 'api-key',
+    '2': 'api-key',
+    '1': 'token',
+  }
+
+  while (true) {
+    const answer = await bridge.ask(`Credential type [token/api-key] (${currentMode}): `)
+
+    if (!answer) {
+      return {
+        mode: currentMode,
+        prefetchedCredential: '',
+      }
+    }
+
+    const normalized = answer.toLowerCase()
+
+    if (modeChoices[normalized]) {
+      return {
+        mode: modeChoices[normalized],
+        prefetchedCredential: '',
+      }
+    }
+
+    if (looksLikeCredential(answer)) {
+      const inferredMode = inferModeFromCredential(answer, currentMode)
+      const inferredLabel = inferredMode === 'api-key' ? 'API key' : 'auth token'
+
+      writeLine(stdout, `Detected a pasted ${inferredLabel}. Continuing with that value.`)
+
+      return {
+        mode: inferredMode,
+        prefetchedCredential: cleanValue(answer),
+      }
+    }
+
+    if (looksLikeBaseUrl(answer)) {
+      writeLine(
+        stdout,
+        'That looks like a provider URL. First enter `token` or `api-key`, or just paste your credential here.',
+      )
+      continue
+    }
+
+    writeLine(
+      stdout,
+      'Please enter `token` or `api-key`, or paste your provider credential directly at this prompt.',
+    )
+  }
+}
+
 export function isProviderReady(entries = {}) {
   const credential = cleanValue(entries.ASTRONCODE_AUTH_TOKEN || entries.ASTRONCODE_API_KEY)
   const baseUrl = cleanValue(entries.ASTRONCODE_BASE_URL)
@@ -139,7 +248,6 @@ export async function runSetupWizard({
 } = {}) {
   const { filePath, entries } = readAstronEnvConfig(projectRoot)
   const currentMode = getProviderMode(entries)
-  const currentCredential = getCredentialForMode(entries, currentMode)
   const currentBaseUrl = cleanValue(entries.ASTRONCODE_BASE_URL)
   const currentModel = cleanValue(entries.ASTRONCODE_MODEL)
 
@@ -167,36 +275,29 @@ export async function runSetupWizard({
     writeLine(stdout)
     writeLine(stdout, 'We will configure your local provider credentials for this machine.')
     writeLine(stdout, 'Press Enter to keep the current value shown in brackets.')
-    writeLine(stdout, 'Tip: if your provider gives you an OpenAI-style `/v2` endpoint, Astroncode will map it to the runtime `/anthropic` endpoint automatically.')
+    writeLine(stdout, 'You can paste your provider credential directly at the first prompt if that is easier.')
+    writeLine(stdout, 'Tip: if your provider gives you an OpenAI-style `/v2` endpoint, Astroncode will normalize it for the local runtime automatically.')
     writeLine(stdout)
 
-    const mode = await askChoice(
+    const { mode, prefetchedCredential } = await askProviderMode({
       bridge,
-      `Credential type [token/api-key] (${currentMode}): `,
-      {
-        token: 'token',
-        t: 'token',
-        'api-key': 'api-key',
-        apikey: 'api-key',
-        api: 'api-key',
-        key: 'api-key',
-        '2': 'api-key',
-        '1': 'token',
-      },
+      stdout,
       currentMode,
-    )
+    })
 
     const existingCredential = getCredentialForMode(entries, mode)
-    const credentialPreview = existingCredential ? maskSecret(existingCredential) : 'not set'
     const credentialLabel = mode === 'api-key' ? 'API key' : 'Auth token'
-    const credential = await askRequiredValue(
-      bridge,
-      `${credentialLabel} [${credentialPreview}]: `,
-      existingCredential,
-    )
+    const credential =
+      prefetchedCredential ||
+      (await askRequiredValue(
+        bridge,
+        `${credentialLabel} [${existingCredential ? maskSecret(existingCredential) : 'not set'}]: `,
+        existingCredential,
+      ))
 
-    const baseUrl = await askRequiredValue(
+    const baseUrl = await askBaseUrl(
       bridge,
+      stdout,
       `Provider base URL [${currentBaseUrl || 'https://provider.example.com/v2'}]: `,
       currentBaseUrl,
     )
@@ -219,7 +320,7 @@ export async function runSetupWizard({
     writeLine(stdout, `  Credential type: ${mode}`)
     writeLine(stdout, `  Credential: ${maskSecret(credential)}`)
     writeLine(stdout, `  Base URL: ${changes.ASTRONCODE_BASE_URL}`)
-    writeLine(stdout, `  Runtime URL: ${normalizeAstronBaseUrl(changes.ASTRONCODE_BASE_URL)}`)
+    writeLine(stdout, '  Runtime routing: normalized automatically for the local Astroncode runtime')
     writeLine(stdout, `  Model: ${changes.ASTRONCODE_MODEL}`)
     writeLine(stdout)
 
@@ -259,6 +360,20 @@ export async function runSetupWizard({
       filePath: result.filePath,
       entries: result.entries,
     }
+  } catch (error) {
+    if (error?.code === 'ABORT_ERR') {
+      writeLine(stdout)
+      writeLine(stdout, 'Setup cancelled.')
+
+      return {
+        handled: true,
+        completed: false,
+        exitCode: 130,
+        filePath,
+      }
+    }
+
+    throw error
   } finally {
     await bridge.close()
   }

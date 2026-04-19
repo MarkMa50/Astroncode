@@ -334,6 +334,7 @@ test('ensureRuntimeBrandingFile patches a runtime bundle on disk when needed', a
       'K.name("claude")',
       'Usage: claude',
       'Enable Claude in Chrome integration',
+      '2.1.88',
     ].join('\n'),
     'utf8',
   )
@@ -361,6 +362,7 @@ test('ensureRuntimeBrandingBundle creates a branded runtime copy without mutatin
     'K.name("claude")',
     'Usage: claude',
     'Enable Claude in Chrome integration',
+    '2.1.88',
   ].join('\n')
 
   await writeFile(runtimeFile, source, 'utf8')
@@ -393,6 +395,20 @@ test('patchRuntimeBrandingText rewrites residual Claude Smart and Anthropic iden
   assert.match(output, /Astron local CLI tool/)
   assert.doesNotMatch(output, /Claude Smart/)
   assert.doesNotMatch(output, /\bAnthropic\b/)
+})
+
+test('patchRuntimeBrandingText leaves Anthropic technical identifiers intact while rewriting visible text', () => {
+  const input = [
+    'const headers={"x-anthropic-id":"abc123","x-request-id":"req-1"};',
+    'const path="/anthropic/messages";',
+    'const label="Switch Anthropic accounts";',
+  ].join('\n')
+
+  const output = patchRuntimeBrandingText(input)
+
+  assert.match(output, /"x-anthropic-id":"abc123"/)
+  assert.match(output, /"\/anthropic\/messages"/)
+  assert.match(output, /"Switch local provider accounts"/)
 })
 
 test('patchRuntimeBrandingText rewrites legacy model-guidance prompt text in the runtime bundle', () => {

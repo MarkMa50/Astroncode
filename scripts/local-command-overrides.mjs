@@ -2,6 +2,7 @@ import path from 'node:path'
 
 import { ASTRONCODE_COMMAND, ASTRONCODE_NAME, ASTRONCODE_VERSION } from './astron-meta.mjs'
 import {
+  getAstronRuntimeCacheDir,
   normalizeAstronBaseUrl,
   readAstronEnvConfig,
   writeAstronEnvFile,
@@ -113,7 +114,10 @@ function printAuthStatus(stdout, projectRoot, options = {}) {
   writeLine(stdout, `Provider mode: ${state.providerMode}`)
   writeLine(stdout, `Credential: ${maskSecret(state.credential)}`)
   writeLine(stdout, `Base URL: ${state.baseUrl || '(not set)'}`)
-  writeLine(stdout, `Runtime base URL: ${state.normalizedBaseUrl || '(not set)'}`)
+  writeLine(
+    stdout,
+    `Runtime routing: ${state.baseUrl ? 'normalized automatically for the local Astroncode runtime' : '(not set)'}`,
+  )
   writeLine(stdout, `Model: ${state.model || '(not set)'}`)
   writeLine(stdout, `Ready for launch: ${state.ready ? 'yes' : 'no'}`)
 
@@ -227,7 +231,7 @@ function writeInstallHelp(stdout) {
     `Repair or install local command shims for this ${ASTRONCODE_NAME} build.`,
     '',
     'This command refreshes the user-level `astroncode` and `atroncode` launchers in your shim directory so they',
-    'work from any folder in your shell.',
+    'work from any folder in PowerShell or Command Prompt.',
     'It also repairs the desktop launchers and prints a local readiness summary.',
   ])
 }
@@ -460,7 +464,7 @@ async function handleDoctor({ argv, projectRoot, stdout }) {
 
   const state = getAuthState(projectRoot)
   const runtimeSource = path.join(projectRoot, 'cli.js')
-  const runtimeCacheDir = path.join(projectRoot, '.astroncode-runtime')
+  const runtimeCacheDir = getAstronRuntimeCacheDir()
   const checks = [
     { status: 'ok', label: 'Node.js runtime', detail: process.version },
     {
@@ -475,8 +479,10 @@ async function handleDoctor({ argv, projectRoot, stdout }) {
     },
     {
       status: state.baseUrl ? 'ok' : 'warn',
-      label: 'Base URL normalized',
-      detail: state.baseUrl ? state.normalizedBaseUrl : 'No provider base URL configured',
+      label: 'Base URL routing',
+      detail: state.baseUrl
+        ? 'normalized automatically for the local Astroncode runtime'
+        : 'No provider base URL configured',
     },
     {
       status: state.model ? 'ok' : 'warn',

@@ -54,7 +54,10 @@ test('runLocalAstronCommand reports local auth status and masks the secret', asy
   assert.match(stdout.toString(), /Astroncode auth status/)
   assert.match(stdout.toString(), /Auth status: configured/)
   assert.match(stdout.toString(), /astron-code-latest/)
-  assert.match(stdout.toString(), /https:\/\/maas-coding-api\.cn-huabei-1\.xf-yun\.com\/anthropic/)
+  assert.match(
+    stdout.toString(),
+    /Runtime routing: normalized automatically for the local Astroncode runtime/,
+  )
   assert.doesNotMatch(stdout.toString(), /real-secret-token/)
   assert.match(stdout.toString(), /real-.*token/)
   assert.equal(stderr.toString(), '')
@@ -163,19 +166,40 @@ test('runLocalAstronCommand doctor validates local runtime readiness', async () 
 
   await writeFile(path.join(dir, 'cli.js'), 'Usage: claude\n2.1.88\n', 'utf8')
 
-  const stdout = createWriter()
-  const result = await runLocalAstronCommand({
-    argv: ['doctor'],
-    projectRoot: dir,
-    stdout,
-    stderr: createWriter(),
-  })
+  const previousRuntimeCacheDir = process.env.ASTRONCODE_RUNTIME_CACHE_DIR
 
-  assert.equal(result.handled, true)
-  assert.equal(result.exitCode, 0)
-  assert.match(stdout.toString(), /Astroncode doctor/i)
-  assert.match(stdout.toString(), /\[ok\] Local provider credentials/)
-  assert.match(stdout.toString(), /\[ok\] Runtime branding cache/)
+  try {
+    process.env.ASTRONCODE_RUNTIME_CACHE_DIR = path.join(dir, 'shared-cache')
+
+    const stdout = createWriter()
+    const result = await runLocalAstronCommand({
+      argv: ['doctor'],
+      projectRoot: dir,
+      stdout,
+      stderr: createWriter(),
+    })
+
+    assert.equal(result.handled, true)
+    assert.equal(result.exitCode, 0)
+    assert.match(stdout.toString(), /Astroncode doctor/i)
+    assert.match(stdout.toString(), /\[ok\] Local provider credentials/)
+    assert.match(stdout.toString(), /\[ok\] Base URL routing:/)
+    assert.match(
+      stdout.toString(),
+      /normalized automatically for the local Astroncode runtime/,
+    )
+    assert.match(
+      stdout.toString(),
+      new RegExp(path.join(dir, 'shared-cache').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    )
+    assert.match(stdout.toString(), /\[ok\] Runtime branding cache/)
+  } finally {
+    if (previousRuntimeCacheDir === undefined) {
+      delete process.env.ASTRONCODE_RUNTIME_CACHE_DIR
+    } else {
+      process.env.ASTRONCODE_RUNTIME_CACHE_DIR = previousRuntimeCacheDir
+    }
+  }
 })
 
 test('runLocalAstronCommand prints local help for doctor and install', async () => {
@@ -207,6 +231,7 @@ test('runLocalAstronCommand prints local help for doctor and install', async () 
   assert.equal(installResult.exitCode, 0)
   assert.match(installHelp.toString(), /Usage: astroncode install \[target\]/)
   assert.match(installHelp.toString(), /repair or install local command shims/i)
+  assert.match(installHelp.toString(), /PowerShell or Command Prompt/i)
 })
 
 test('runLocalAstronCommand blocks hosted bridge aliases with Astroncode guidance', async () => {
