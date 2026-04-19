@@ -23,9 +23,13 @@
     "test:astron": "node --test ./tests/astron-env.test.mjs",
     "test:runtime": "node --test ./tests/runtime-branding.test.mjs ./tests/runtime-guards.test.mjs",
     "test:sync": "node --test ./tests/main-windows-sync.test.mjs",
+    "test:version-sync": "node --test ./tests/version-sync.test.mjs",
     "sync:align": "node ./scripts/main-windows-sync.mjs --apply",
     "sync:align:commit": "node ./scripts/main-windows-sync.mjs --apply --commit",
-    "sync:align:dry-run": "node ./scripts/main-windows-sync.mjs"
+    "sync:align:dry-run": "node ./scripts/main-windows-sync.mjs",
+    "sync:loop": "node ./scripts/runtime-auto-sync.mjs",
+    "version:bump-local": "node ./scripts/bump-local-version.mjs",
+    "version:ensure-local": "node ./scripts/ensure-local-version.mjs"
   },
   "dependencies": {},
   "optionalDependencies": {

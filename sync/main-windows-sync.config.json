@@ -12,7 +12,11 @@
     "include": [
       "CHANGELOG.md",
       "CONTRIBUTING.md",
-      "docs/**/*.md"
+      "docs/**/*.md",
+      "scripts/version-files.mjs",
+      "scripts/ensure-local-version.mjs",
+      "scripts/bump-local-version.mjs",
+      "tests/version-sync.test.mjs"
     ],
     "exclude": [
       "docs/superpowers/**"
@@ -33,6 +37,9 @@
     "atroncode.cmd",
     "atroncode.sh"
   ],
-  "blocked": [],
+  "blocked": [
+    "package.json",
+    "scripts/astron-meta.mjs"
+  ],
   "renameMap": []
 }
