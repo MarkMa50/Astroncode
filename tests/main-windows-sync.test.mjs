@@ -23,8 +23,35 @@ const baseConfig = {
     'astroncode.ps1',
     'astroncode.cmd',
   ],
+  managed: [
+    {
+      path: 'package.json',
+      strategy: 'package-json',
+      preserveBinKeys: ['atroncode'],
+      preserveScriptKeys: [
+        'test:astron',
+        'test:runtime',
+        'test:sync',
+        'test:version-sync',
+        'sync:align',
+        'sync:align:commit',
+        'sync:align:dry-run',
+        'sync:loop',
+      ],
+      dropSourceScriptKeys: ['sync:check', 'sync:local', 'sync:cloud'],
+      overrides: {
+        homepage: 'https://github.com/MarkMa50/Astroncode',
+        bugs: {
+          url: 'https://github.com/MarkMa50/Astroncode/issues',
+        },
+      },
+    },
+    {
+      path: 'scripts/astron-meta.mjs',
+      strategy: 'copy',
+    },
+  ],
   blocked: [
-    'package.json',
     'README.md',
     'scripts/**',
     'src/**',
@@ -71,6 +98,16 @@ test('classifyPath marks included markdown docs as shared and scripts as blocked
   )
 })
 
+test('classifyPath treats managed files as managed before blocked rules', () => {
+  const decision = classifyPath('package.json', baseConfig)
+
+  assert.equal(decision.type, 'managed')
+  assert.equal(decision.sourcePath, 'package.json')
+  assert.equal(decision.targetPath, 'package.json')
+  assert.equal(decision.reason, 'matched managed rule')
+  assert.equal(decision.managedRule?.strategy, 'package-json')
+})
+
 test('classifyPath protects Windows preserve targets after rename mapping', () => {
   const config = {
     ...baseConfig,
@@ -97,12 +134,12 @@ test('planSync copies shared docs but reports preserve and blocked conflicts sep
   const sourceFiles = new Map([
     ['CHANGELOG.md', 'new changelog'],
     ['docs/ARCHITECTURE.md', 'shared architecture'],
-    ['package.json', '{"name":"astroncode"}'],
+    ['scripts/runtime-branding.mjs', 'source runtime branding'],
     ['src/gui/app.js', 'upstream gui'],
   ])
   const targetFiles = new Map([
     ['CHANGELOG.md', 'old changelog'],
-    ['package.json', '{"name":"atroncode"}'],
+    ['scripts/runtime-branding.mjs', 'windows runtime branding'],
     ['gui/app.js', 'windows gui'],
   ])
   const config = {
@@ -142,9 +179,96 @@ test('planSync copies shared docs but reports preserve and blocked conflicts sep
   ])
   assert.deepEqual(plan.blockedConflicts, [
     {
-      sourcePath: 'package.json',
-      targetPath: 'package.json',
+      sourcePath: 'scripts/runtime-branding.mjs',
+      targetPath: 'scripts/runtime-branding.mjs',
       reason: 'matched blocked rule',
+    },
+  ])
+})
+
+test('planSync merges managed package metadata with Windows-specific overrides', () => {
+  const sourceFiles = new Map([
+    ['package.json', JSON.stringify({
+      name: 'astroncode',
+      version: '1.0.742',
+      bin: {
+        astroncode: 'scripts/start.mjs',
+        astron: 'scripts/start.mjs',
+      },
+      author: 'Astroncode',
+      description: 'Astroncode terminal coding system with a swappable model provider launch layer.',
+      homepage: 'https://github.com/MarkMa50/Astroncode----src',
+      bugs: {
+        url: 'https://github.com/MarkMa50/Astroncode----src/issues',
+      },
+      scripts: {
+        test: 'node --test ./tests/*.test.mjs',
+        prepare: 'node ./prepare.mjs',
+        'sync:check': 'sh ./scripts/check-installed-sync.sh',
+        'sync:local': 'sh ./scripts/deploy-installed-app.sh',
+        'sync:cloud': 'sh ./scripts/auto-sync-startup.sh --once',
+      },
+    }, null, 2)],
+  ])
+  const targetFiles = new Map([
+    ['package.json', JSON.stringify({
+      name: 'atroncode',
+      version: '1.0.10',
+      bin: {
+        atroncode: 'scripts/start.mjs',
+        astroncode: 'scripts/start.mjs',
+      },
+      scripts: {
+        'test:astron': 'node --test ./tests/astron-env.test.mjs',
+        'sync:align': 'node ./scripts/main-windows-sync.mjs --apply',
+      },
+    }, null, 2)],
+  ])
+
+  const plan = planSync({
+    sourceFiles,
+    targetFiles,
+    config: baseConfig,
+  })
+
+  assert.equal(plan.managedActions.length, 1)
+  assert.equal(plan.managedActions[0].targetPath, 'package.json')
+  assert.equal(plan.managedActions[0].mode, 'update')
+
+  const merged = JSON.parse(plan.managedActions[0].content)
+  assert.equal(merged.name, 'astroncode')
+  assert.equal(merged.version, '1.0.742')
+  assert.equal(merged.bin.atroncode, 'scripts/start.mjs')
+  assert.equal(merged.bin.astroncode, 'scripts/start.mjs')
+  assert.equal(merged.homepage, 'https://github.com/MarkMa50/Astroncode')
+  assert.equal(merged.bugs.url, 'https://github.com/MarkMa50/Astroncode/issues')
+  assert.equal(merged.scripts.test, 'node --test ./tests/*.test.mjs')
+  assert.equal(merged.scripts['test:astron'], 'node --test ./tests/astron-env.test.mjs')
+  assert.equal(merged.scripts['sync:align'], 'node ./scripts/main-windows-sync.mjs --apply')
+  assert.equal(merged.scripts['sync:check'], undefined)
+})
+
+test('planSync treats astron-meta as a managed copy when only the version differs', () => {
+  const sourceFiles = new Map([
+    ['scripts/astron-meta.mjs', "export const ASTRONCODE_VERSION = '1.0.742'\n"],
+  ])
+  const targetFiles = new Map([
+    ['scripts/astron-meta.mjs', "export const ASTRONCODE_VERSION = '1.0.10'\n"],
+  ])
+
+  const plan = planSync({
+    sourceFiles,
+    targetFiles,
+    config: baseConfig,
+  })
+
+  assert.deepEqual(plan.managedActions, [
+    {
+      sourcePath: 'scripts/astron-meta.mjs',
+      targetPath: 'scripts/astron-meta.mjs',
+      mode: 'update',
+      content: "export const ASTRONCODE_VERSION = '1.0.742'\n",
+      strategy: 'copy',
     },
   ])
 })

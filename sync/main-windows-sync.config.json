@@ -26,6 +26,7 @@
   "preserve": [
     ".claude/**",
     "artifacts/**",
+    "README.md",
     "gui/**",
     "astroncode.ps1",
     "astroncode.cmd",
@@ -40,9 +41,46 @@
     "atroncode.cmd",
     "atroncode.sh"
   ],
+  "managed": [
+    {
+      "path": "package.json",
+      "strategy": "package-json",
+      "preserveBinKeys": [
+        "atroncode"
+      ],
+      "preserveScriptKeys": [
+        "test:astron",
+        "test:runtime",
+        "test:sync",
+        "test:version-sync",
+        "sync:align",
+        "sync:align:commit",
+        "sync:align:dry-run",
+        "sync:loop",
+        "version:bump-local",
+        "version:ensure-local"
+      ],
+      "dropSourceScriptKeys": [
+        "sync:check",
+        "sync:local",
+        "sync:cloud",
+        "version:bump-local",
+        "version:ensure-local"
+      ],
+      "overrides": {
+        "homepage": "https://github.com/MarkMa50/Astroncode",
+        "bugs": {
+          "url": "https://github.com/MarkMa50/Astroncode/issues"
+        }
+      }
+    },
+    {
+      "path": "scripts/astron-meta.mjs",
+      "strategy": "copy"
+    }
+  ],
   "blocked": [
-    "package.json",
-    "scripts/astron-meta.mjs"
+    "README.md"
   ],
   "renameMap": []
 }

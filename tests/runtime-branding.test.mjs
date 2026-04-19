@@ -49,8 +49,8 @@ test('patchRuntimeBrandingText rewrites user-facing Astroncode strings', () => {
   )
   assert.match(output, /Welcome to Astroncode/)
   assert.match(output, /╠═╣╚═╗ ║ ╠╦╝/)
-  assert.match(output, /1\.0\.10/)
-  assert.match(output, /1\.0\.10/)
+  assert.match(output, /1\.0\.742/)
+  assert.match(output, /1\.0\.742/)
   assert.doesNotMatch(output, /2\.1\.88/)
 })
 

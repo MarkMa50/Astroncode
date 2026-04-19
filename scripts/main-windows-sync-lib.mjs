@@ -67,6 +67,13 @@ export function matchesAnyPattern(relativePath, patterns = []) {
   return patterns.some(pattern => globToRegExp(normalizePath(pattern)).test(normalizedPath))
 }
 
+export function getManagedRule(relativePath, config) {
+  const normalizedPath = normalizePath(relativePath)
+  return (config.managed ?? []).find(rule =>
+    matchesAnyPattern(normalizedPath, [rule.path]),
+  ) ?? null
+}
+
 export function classifyPath(relativePath, config) {
   const sourcePath = normalizePath(relativePath)
   const targetPath = applyRenameMap(sourcePath, config.renameMap)
@@ -92,6 +99,19 @@ export function classifyPath(relativePath, config) {
       sourcePath,
       targetPath,
       reason: 'matched preserve rule',
+    }
+  }
+
+  const managedRule = getManagedRule(sourcePath, config)
+    ?? getManagedRule(targetPath, config)
+
+  if (managedRule) {
+    return {
+      type: 'managed',
+      sourcePath,
+      targetPath,
+      reason: 'matched managed rule',
+      managedRule,
     }
   }
 
@@ -149,12 +169,100 @@ function sameContent(left, right) {
   return String(left).replace(/\r\n/g, '\n') === String(right).replace(/\r\n/g, '\n')
 }
 
+function toText(content) {
+  if (content == null) {
+    return ''
+  }
+
+  if (Buffer.isBuffer(content)) {
+    return content.toString('utf8')
+  }
+
+  return String(content)
+}
+
+function applyObjectOverrides(baseValue, overrideValue) {
+  if (
+    overrideValue == null
+    || typeof overrideValue !== 'object'
+    || Array.isArray(overrideValue)
+  ) {
+    return overrideValue
+  }
+
+  const nextValue = {
+    ...(baseValue && typeof baseValue === 'object' && !Array.isArray(baseValue) ? baseValue : {}),
+  }
+
+  for (const [key, value] of Object.entries(overrideValue)) {
+    nextValue[key] = applyObjectOverrides(nextValue[key], value)
+  }
+
+  return nextValue
+}
+
+export function mergeManagedContent({
+  sourcePath,
+  sourceContent,
+  targetContent,
+  managedRule,
+}) {
+  if (managedRule.strategy === 'copy') {
+    return toText(sourceContent)
+  }
+
+  if (managedRule.strategy === 'package-json') {
+    const sourcePackage = JSON.parse(toText(sourceContent))
+    const targetPackage = targetContent ? JSON.parse(toText(targetContent)) : {}
+    const mergedPackage = {
+      ...sourcePackage,
+    }
+
+    if (sourcePackage.bin) {
+      mergedPackage.bin = { ...sourcePackage.bin }
+    }
+
+    if (sourcePackage.scripts) {
+      mergedPackage.scripts = { ...sourcePackage.scripts }
+    }
+
+    for (const key of managedRule.dropSourceScriptKeys ?? []) {
+      if (mergedPackage.scripts) {
+        delete mergedPackage.scripts[key]
+      }
+    }
+
+    for (const key of managedRule.preserveBinKeys ?? []) {
+      if (targetPackage.bin?.[key]) {
+        mergedPackage.bin = mergedPackage.bin ?? {}
+        mergedPackage.bin[key] = targetPackage.bin[key]
+      }
+    }
+
+    for (const key of managedRule.preserveScriptKeys ?? []) {
+      if (targetPackage.scripts?.[key]) {
+        mergedPackage.scripts = mergedPackage.scripts ?? {}
+        mergedPackage.scripts[key] = targetPackage.scripts[key]
+      }
+    }
+
+    for (const [key, value] of Object.entries(managedRule.overrides ?? {})) {
+      mergedPackage[key] = applyObjectOverrides(mergedPackage[key], value)
+    }
+
+    return `${JSON.stringify(mergedPackage, null, 2)}\n`
+  }
+
+  throw new Error(`Unsupported managed sync strategy for ${sourcePath}: ${managedRule.strategy}`)
+}
+
 export function planSync({
   sourceFiles,
   targetFiles,
   config,
 }) {
   const copyActions = []
+  const managedActions = []
   const preserveConflicts = []
   const blockedConflicts = []
   let ignoredCount = 0
@@ -182,6 +290,26 @@ export function planSync({
       continue
     }
 
+    if (decision.type === 'managed') {
+      const mergedContent = mergeManagedContent({
+        sourcePath: decision.sourcePath,
+        sourceContent,
+        targetContent,
+        managedRule: decision.managedRule,
+      })
+
+      if (!sameContent(mergedContent, targetContent)) {
+        managedActions.push({
+          sourcePath: decision.sourcePath,
+          targetPath: decision.targetPath,
+          mode: targetContent === undefined ? 'create' : 'update',
+          content: mergedContent,
+          strategy: decision.managedRule.strategy,
+        })
+      }
+      continue
+    }
+
     if (decision.type === 'preserve') {
       preserveConflicts.push({
         sourcePath: decision.sourcePath,
@@ -202,6 +330,7 @@ export function planSync({
 
   return {
     copyActions,
+    managedActions,
     preserveConflicts,
     blockedConflicts,
     ignoredCount,

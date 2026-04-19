@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, readdir, copyFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, copyFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -125,13 +125,14 @@ function renderSummary(summary, sourceRoot, targetRoot) {
     `Source: ${sourceRoot}`,
     `Target: ${targetRoot}`,
     `Shared updates: ${summary.copyActions.length}`,
+    `Managed updates: ${summary.managedActions.length}`,
     `Preserve conflicts: ${summary.preserveConflicts.length}`,
     `Blocked conflicts: ${summary.blockedConflicts.length}`,
     `Ignored files: ${summary.ignoredCount}`,
   ].join('\n')
 }
 
-async function applyCopyActions({ sourceRoot, targetRoot, copyActions }) {
+async function applySyncActions({ sourceRoot, targetRoot, copyActions, managedActions }) {
   for (const action of copyActions) {
     const from = path.join(sourceRoot, action.sourcePath)
     const to = path.join(targetRoot, action.targetPath)
@@ -139,10 +140,16 @@ async function applyCopyActions({ sourceRoot, targetRoot, copyActions }) {
     await mkdir(path.dirname(to), { recursive: true })
     await copyFile(from, to)
   }
+
+  for (const action of managedActions) {
+    const to = path.join(targetRoot, action.targetPath)
+    await mkdir(path.dirname(to), { recursive: true })
+    await writeFile(to, action.content, 'utf8')
+  }
 }
 
-async function maybeCommit({ targetRoot, branch, copyActions, sourceRoot }) {
-  if (copyActions.length === 0) {
+async function maybeCommit({ targetRoot, branch, copyActions, managedActions, sourceRoot }) {
+  if (copyActions.length === 0 && managedActions.length === 0) {
     return null
   }
 
@@ -155,12 +162,19 @@ async function maybeCommit({ targetRoot, branch, copyActions, sourceRoot }) {
 
   await execCommand(
     'git',
-    ['add', '--', ...copyActions.map(action => action.targetPath)],
+    [
+      'add',
+      '--',
+      ...new Set([
+        ...copyActions.map(action => action.targetPath),
+        ...managedActions.map(action => action.targetPath),
+      ]),
+    ],
     { cwd: targetRoot },
   )
   await execCommand(
     'git',
-    ['commit', '-m', `chore: align shared main docs from ${sourceSha}`],
+    ['commit', '-m', `chore: align managed main files from ${sourceSha}`],
     { cwd: targetRoot },
   )
   await execCommand('git', ['push', 'origin', branch], { cwd: targetRoot })
@@ -225,10 +239,11 @@ async function main() {
     return
   }
 
-  await applyCopyActions({
+  await applySyncActions({
     sourceRoot,
     targetRoot,
     copyActions: summary.copyActions,
+    managedActions: summary.managedActions,
   })
 
   if (args.commit) {
@@ -236,6 +251,7 @@ async function main() {
       targetRoot,
       branch: config.target.branch,
       copyActions: summary.copyActions,
+      managedActions: summary.managedActions,
       sourceRoot,
     })
   }

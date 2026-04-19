@@ -1,107 +1,89 @@
-# Atroncode
+# Astroncode for Windows
 
-Atroncode is a locally deployed coding-agent runtime that keeps the Claude Code-style terminal workflow, but launches against your own provider configuration instead of Anthropic-managed auth.
+Astroncode on Windows keeps the upstream terminal workflow, but runs as a local Windows-first build with provider configuration, launcher repair, GUI workbench support, and guarded sync rules for Windows-specific entrypoints.
 
-This deployment lives at `C:\Users\markw\astroncode`.
+This working tree is expected at:
+
+- `C:\Users\markw\astroncode`
 
 ## Start
 
 Recommended entrypoints:
 
 ```powershell
-.\atroncode.ps1 --help
-.\atroncode.ps1 -p "Reply with exactly OK." --output-format text
+.\astroncode.ps1 --help
+.\astroncode.ps1 -p "Reply with exactly OK." --output-format text
 ```
 
-Or:
+You can also launch directly through Node:
 
 ```powershell
 node .\scripts\start.mjs --help
 ```
 
-Desktop launcher:
+Common local commands:
 
-```text
-C:\Users\markw\Desktop\Atroncode Launcher.cmd
-```
+- `astroncode`
+- `astroncode setup`
+- `astroncode install`
+- `astroncode doctor`
+- `astroncode gui`
+
+Compatibility aliases are still preserved for existing Windows shortcuts:
+
+- `atroncode`
+- `atroncode.ps1`
+- `atroncode.cmd`
 
 ## Provider configuration
 
-Atroncode reads `.env.astroncode` and maps those values into the upstream runtime:
+Astroncode reads `.env.astroncode` and maps those values into the runtime:
 
 - `ASTRONCODE_AUTH_TOKEN -> ANTHROPIC_AUTH_TOKEN`
+- `ASTRONCODE_API_KEY -> ANTHROPIC_API_KEY`
 - `ASTRONCODE_BASE_URL -> ANTHROPIC_BASE_URL`
 - `ASTRONCODE_MODEL -> ANTHROPIC_MODEL`
 
-Defaults applied by the launcher:
+Launcher defaults also apply:
 
 - `ANTHROPIC_SMALL_FAST_MODEL = ASTRONCODE_MODEL`
 - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = 1`
+- `DISABLE_TELEMETRY = 1`
+- `CLAUDE_CODE_ACCESSIBILITY = 1` on Windows for better IME/CJK input behavior
 
-For iFlytek Astron Coding Plan, the launcher automatically normalizes the official OpenAI-style `/v2` endpoint to the Anthropic-compatible `/anthropic` endpoint before startup.
+If your provider exposes an OpenAI-style `/v2` endpoint, Astroncode automatically normalizes it to the runtime `/anthropic` endpoint before startup.
 
-```powershell
-ASTRONCODE_AUTH_TOKEN=...
-ASTRONCODE_BASE_URL=...
-ASTRONCODE_MODEL=...
-```
-
-You can open the interactive setup wizard any time with:
+You can configure the local provider any time with:
 
 ```powershell
 .\astroncode.ps1 setup
 ```
 
-On a brand-new machine with no provider configured yet, a plain `astroncode` launch now opens this setup wizard automatically before the runtime starts.
+On a fresh machine with no provider configured yet, a plain `astroncode` launch opens the setup wizard automatically before the runtime starts.
 
-## Runtime hardening
+## Runtime behavior
 
-The local launch path now does three things before `cli.js` starts:
+The Windows launch path now does these things before `cli.js` starts:
 
-1. Loads and applies `.env.astroncode`
-2. Generates a branded runtime copy in `.astroncode-runtime` so the original `cli.js` is never rewritten during normal startup
-3. Handles local Atroncode-safe commands in the launcher and blocks only the remaining upstream-only flows
+1. Loads provider configuration from `.env.astroncode` or the configured user config directory
+2. Generates a branded runtime copy in the Astroncode runtime cache instead of mutating the bundled `cli.js`
+3. Handles local Windows-safe commands before handing off to the upstream runtime
+4. Runs the guarded Windows sync loop while the runtime stays open
 
-## Supported local workflow
+Windows-specific launch behavior is intentionally preserved for:
 
-Supported and verified:
-
-- normal interactive launch
-- `--help`
-- `-v`
-- `-p/--print`
-- `gui` / `ui`
-- `install` repairs global command shims
-- `install` refreshes desktop launchers and prints a local readiness summary
-- `auth status`
-- `auth login`
-- `auth logout`
-- `setup-token`
-- `setup`
-- `doctor`
-- `update` / `upgrade`
-- local provider-token execution through `.env.astroncode`
-
-Currently blocked on purpose in this local build:
-
-- `remote-control`
-- `assistant`
-- `--chrome` / `--no-chrome`
-
-Those remaining paths still depend on upstream Claude browser-extension or hosted session infrastructure, so Atroncode exits early with a clear local-build message instead of sending you into a broken flow.
+- `scripts/start.mjs`
+- `scripts/runtime-auto-sync.mjs`
+- PowerShell / CMD launchers
+- desktop shortcuts
+- GUI entrypoints
 
 ## Local GUI workbench
 
-Launch the new local GUI workbench with:
+Launch the local GUI workbench with:
 
 ```powershell
 .\astroncode.ps1 gui
-```
-
-Or:
-
-```powershell
-node .\scripts\start.mjs gui
 ```
 
 Optional:
@@ -110,17 +92,48 @@ Optional:
 .\astroncode.ps1 gui --port 46321 --no-browser
 ```
 
-The GUI runs as a local browser workbench backed by the existing Astroncode core. V1 includes:
+The GUI workbench is backed by the same local Astroncode core and currently includes:
 
-- a left rail for workspace/runtime state
-- a central transcript and prompt composer
-- a right context panel with local environment details
+- workspace/runtime status
+- transcript and prompt composer
+- local environment context
 - prompt execution through the local `astroncode -p` path
+
+## Main-to-Windows alignment
+
+Windows now learns from the macOS mainline repository through the local alignment workflow:
+
+- source: `MarkMa50/Astroncode----src@main`
+- target: `MarkMa50/Astroncode@windows`
+
+Shared files can be aligned with:
+
+```powershell
+npm run sync:align:dry-run
+npm run sync:align
+```
+
+The sync rules intentionally protect Windows-only surfaces such as launchers, GUI files, and Windows runtime wrappers. Managed files such as `package.json` and `scripts/astron-meta.mjs` are merged with Windows-specific overrides instead of being blindly overwritten.
+
+An automatic local task also runs every day at midnight and follows the same rules:
+
+- safe shared updates may be committed automatically
+- Windows-only files are preserved
+- protected conflicts stop the run instead of forcing an overwrite
 
 ## Tests
 
-Run all local verification tests:
+Run the full local verification suite with:
 
 ```powershell
 npm test
+```
+
+Useful focused checks:
+
+```powershell
+npm run test:astron
+npm run test:runtime
+npm run test:sync
+npm run test:version-sync
 ```

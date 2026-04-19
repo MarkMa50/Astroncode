@@ -98,7 +98,7 @@ test('runSetupWizard writes token-mode provider settings', async () => {
     prompt: async () => answers.shift() ?? '',
   })
 
-  const saved = await readFile(path.join(dir, '.env.astroncode'), 'utf8')
+  const saved = await readFile(result.filePath, 'utf8')
 
   assert.equal(result.completed, true)
   assert.match(saved, /ASTRONCODE_AUTH_TOKEN=token-123/)
