@@ -13,6 +13,8 @@ const baseConfig = {
       'CHANGELOG.md',
       'CONTRIBUTING.md',
       'docs/**/*.md',
+      'src/utils/core/index.ts',
+      'tests/utils-core.test.mjs',
     ],
     exclude: [
       'docs/superpowers/**',
@@ -128,6 +130,33 @@ test('classifyPath allows explicitly shared helper files under src and tests', (
       type: 'shared',
       sourcePath: 'tests/runtime-branding-copy.test.mjs',
       targetPath: 'tests/runtime-branding-copy.test.mjs',
+      reason: 'matched shared include rule',
+    },
+  )
+})
+
+test('classifyPath allows explicitly shared utility index and utility tests', () => {
+  const config = {
+    ...baseConfig,
+    blocked: ['README.md'],
+  }
+
+  assert.deepEqual(
+    classifyPath('src/utils/core/index.ts', config),
+    {
+      type: 'shared',
+      sourcePath: 'src/utils/core/index.ts',
+      targetPath: 'src/utils/core/index.ts',
+      reason: 'matched shared include rule',
+    },
+  )
+
+  assert.deepEqual(
+    classifyPath('tests/utils-core.test.mjs', config),
+    {
+      type: 'shared',
+      sourcePath: 'tests/utils-core.test.mjs',
+      targetPath: 'tests/utils-core.test.mjs',
       reason: 'matched shared include rule',
     },
   )
