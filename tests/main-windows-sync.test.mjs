@@ -98,6 +98,41 @@ test('classifyPath marks included markdown docs as shared and scripts as blocked
   )
 })
 
+test('classifyPath allows explicitly shared helper files under src and tests', () => {
+  const config = {
+    ...baseConfig,
+    shared: {
+      ...baseConfig.shared,
+      include: [
+        ...baseConfig.shared.include,
+        'src/utils/logoPageCopy.mjs',
+        'tests/runtime-branding-copy.test.mjs',
+      ],
+    },
+    blocked: ['README.md'],
+  }
+
+  assert.deepEqual(
+    classifyPath('src/utils/logoPageCopy.mjs', config),
+    {
+      type: 'shared',
+      sourcePath: 'src/utils/logoPageCopy.mjs',
+      targetPath: 'src/utils/logoPageCopy.mjs',
+      reason: 'matched shared include rule',
+    },
+  )
+
+  assert.deepEqual(
+    classifyPath('tests/runtime-branding-copy.test.mjs', config),
+    {
+      type: 'shared',
+      sourcePath: 'tests/runtime-branding-copy.test.mjs',
+      targetPath: 'tests/runtime-branding-copy.test.mjs',
+      reason: 'matched shared include rule',
+    },
+  )
+})
+
 test('classifyPath treats managed files as managed before blocked rules', () => {
   const decision = classifyPath('package.json', baseConfig)
 

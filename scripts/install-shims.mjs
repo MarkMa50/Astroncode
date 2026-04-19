@@ -34,10 +34,11 @@ function buildCmdShimContent(targetScript) {
   ].join('\r\n')
 }
 
-function buildPosixShimContent(projectRoot) {
+function buildPosixShimContent(targetScript) {
   return [
     '#!/bin/sh',
-    `node "${path.join(projectRoot, 'scripts', 'start.mjs')}" "$@"`,
+    'set -eu',
+    `exec sh "${targetScript}" "$@"`,
     '',
   ].join('\n')
 }
@@ -66,13 +67,13 @@ export async function ensureAstronCommandShims({
     : [
         {
           name: 'astroncode',
-          targetScript: path.join(resolvedProjectRoot, 'scripts', 'start.mjs'),
-          content: buildPosixShimContent(resolvedProjectRoot),
+          targetScript: path.join(resolvedProjectRoot, 'astroncode.sh'),
+          content: buildPosixShimContent(path.join(resolvedProjectRoot, 'astroncode.sh')),
         },
         {
           name: 'atroncode',
-          targetScript: path.join(resolvedProjectRoot, 'scripts', 'start.mjs'),
-          content: buildPosixShimContent(resolvedProjectRoot),
+          targetScript: path.join(resolvedProjectRoot, 'atroncode.sh'),
+          content: buildPosixShimContent(path.join(resolvedProjectRoot, 'atroncode.sh')),
         },
       ]
 

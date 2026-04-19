@@ -100,7 +100,8 @@ test('patchRuntimeBrandingText replaces the legacy startup mascot and suppresses
 
   assert.match(output, /╔═╗╔═╗╔╦╗╦═╗/)
   assert.match(output, /╔═╗╔═╗╔╦╗╔═╗/)
-  assert.doesNotMatch(output, /Welcome back/)
+  assert.match(output, /Welcome back, \$\{_\}\./)
+  assert.match(output, /Ready when you are\./)
   assert.doesNotMatch(output, /neon command deck/i)
   assert.doesNotMatch(output, /ATRON|pixel coding core/)
   assert.match(output, /async function lcY\(\)\{return null\}/)
@@ -409,6 +410,34 @@ test('patchRuntimeBrandingText leaves Anthropic technical identifiers intact whi
   assert.match(output, /"x-anthropic-id":"abc123"/)
   assert.match(output, /"\/anthropic\/messages"/)
   assert.match(output, /"Switch local provider accounts"/)
+})
+
+test('patchRuntimeBrandingText rewrites hosted docs links to the Astroncode repositories', () => {
+  const input = [
+    'Read more: https://code.claude.com/docs/en/chrome',
+    'Support: https://support.claude.com/help/contact',
+    'Platform: https://platform.claude.com/docs',
+    'Docs: https://docs.claude.com/s/claude-code-jetbrains',
+  ].join('\n')
+
+  const output = patchRuntimeBrandingText(input)
+
+  assert.match(output, /https:\/\/github\.com\/MarkMa50\/Astroncode----src/)
+  assert.match(output, /https:\/\/github\.com\/MarkMa50\/Astroncode----src\/issues/)
+  assert.doesNotMatch(output, /docs\.astroncode\.local|support\.astroncode\.local|platform\.astroncode\.local/)
+})
+
+test('patchRuntimeBrandingText updates legacy identity copy without claiming an official Claude CLI lineage', () => {
+  const input = [
+    "You are Claude Code, Anthropic's official CLI for Claude",
+    "You are an agent for Claude Code, Anthropic's official CLI for Claude",
+    "You are a file search specialist for Claude Code, Anthropic's official CLI for Claude",
+  ].join('\n')
+
+  const output = patchRuntimeBrandingText(input)
+
+  assert.match(output, /Astroncode, Astron's local coding assistant/)
+  assert.doesNotMatch(output, /official CLI for Claude/)
 })
 
 test('patchRuntimeBrandingText rewrites legacy model-guidance prompt text in the runtime bundle', () => {

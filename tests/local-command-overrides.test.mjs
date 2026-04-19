@@ -347,7 +347,7 @@ test('runLocalAstronCommand install repairs command shims in the target shim dir
     })
 
     const astroncodeShim = await readFile(path.join(shimDir, 'astroncode.cmd'), 'utf8')
-    const desktopLauncher = await readFile(path.join(desktopDir, 'Astroncode.cmd'), 'utf8')
+    const desktopLauncher = await readFile(path.join(desktopDir, 'Astroncode CLI.cmd'), 'utf8')
 
     assert.equal(result.handled, true)
     assert.equal(result.exitCode, 0)
@@ -355,6 +355,7 @@ test('runLocalAstronCommand install repairs command shims in the target shim dir
     assert.match(stdout.toString(), /Repaired desktop launchers/i)
     assert.match(stdout.toString(), /Node\.js:/i)
     assert.match(stdout.toString(), /astroncode\.cmd/i)
+    assert.match(stdout.toString(), /Astroncode CLI\.cmd/i)
     assert.match(astroncodeShim, /astroncode\.ps1/)
     assert.match(desktopLauncher, /astroncode\.ps1/)
   } finally {

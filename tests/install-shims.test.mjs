@@ -40,6 +40,6 @@ test('ensureAstronCommandShims writes shell launchers for darwin', async () => {
 
   assert.equal(result.shims.length, 2)
   assert.match(astroncodeShim, /^#!\/bin\/sh/m)
-  assert.match(astroncodeShim, /scripts[\\/]+start\.mjs/)
-  assert.match(atroncodeShim, /scripts[\\/]+start\.mjs/)
+  assert.match(astroncodeShim, /exec sh ".*astroncode\.sh"/)
+  assert.match(atroncodeShim, /exec sh ".*atroncode\.sh"/)
 })

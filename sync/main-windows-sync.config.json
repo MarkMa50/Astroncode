@@ -15,10 +15,15 @@
       "docs/**/*.md",
       "scripts/astron-env.mjs",
       "scripts/js-ast-strings.mjs",
+      "scripts/patch-runtime-branding.mjs",
+      "scripts/runtime-exit-normalizer.mjs",
       "scripts/version-files.mjs",
       "scripts/ensure-local-version.mjs",
       "scripts/bump-local-version.mjs",
       "scripts/setup-wizard.mjs",
+      "src/utils/logoPageCopy.mjs",
+      "tests/logo-page-copy.test.mjs",
+      "tests/runtime-branding-copy.test.mjs",
       "tests/version-sync.test.mjs"
     ],
     "exclude": [

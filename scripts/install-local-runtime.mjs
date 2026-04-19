@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import os from 'node:os'
@@ -5,6 +6,8 @@ import path from 'node:path'
 
 import { readAstronEnvConfig } from './astron-env.mjs'
 import { ensureAstronCommandShims } from './install-shims.mjs'
+
+const DESKTOP_CLI_LAUNCHER_NAME = 'Astroncode CLI'
 
 function normalizePathForComparison(value) {
   return String(value ?? '').trim().replace(/[\\/]+$/, '').toLowerCase()
@@ -40,7 +43,8 @@ function buildDesktopCliLauncher(projectRoot, platform = process.platform) {
   if (platform !== 'win32') {
     return [
       '#!/bin/sh',
-      `node "${path.join(projectRoot, 'scripts', 'start.mjs')}" "$@"`,
+      'set -eu',
+      `exec sh "${path.join(projectRoot, 'astroncode.sh')}" "$@"`,
       '',
     ].join('\n')
   }
@@ -52,6 +56,20 @@ function buildDesktopCliLauncher(projectRoot, platform = process.platform) {
     'exit /b %ERRORLEVEL%',
     '',
   ].join('\r\n')
+}
+
+function maybeOpenDesktopDir(desktopDir) {
+  if (process.platform !== 'darwin') {
+    return
+  }
+
+  try {
+    const child = spawn('open', [desktopDir], {
+      detached: true,
+      stdio: 'ignore',
+    })
+    child.unref()
+  } catch {}
 }
 
 function buildDesktopGuiLauncher(projectRoot, platform = process.platform) {
@@ -72,6 +90,30 @@ function buildDesktopGuiLauncher(projectRoot, platform = process.platform) {
   ].join('\r\n')
 }
 
+async function removeLegacyDesktopLaunchers(desktopDir, platform = process.platform) {
+  const legacyNames = [
+    'Astroncode.command',
+    `${DESKTOP_CLI_LAUNCHER_NAME}.command`,
+    'Astroncode GUI.command',
+    'Astroncode.app',
+    'Install Astroncode.command',
+    'Start Astroncode.command',
+    'Start Astroncode GUI.command',
+    'Astroncode.cmd',
+    `${DESKTOP_CLI_LAUNCHER_NAME}.cmd`,
+  ]
+
+  if (platform === 'win32') {
+    legacyNames.push('Astroncode GUI.vbs')
+  }
+
+  await Promise.all(
+    legacyNames.map(filePath =>
+      fsp.rm(path.join(desktopDir, filePath), { recursive: true, force: true }),
+    ),
+  )
+}
+
 export async function ensureAstronDesktopLaunchers({
   projectRoot,
   desktopDir = detectDesktopDir(),
@@ -80,10 +122,14 @@ export async function ensureAstronDesktopLaunchers({
   const resolvedProjectRoot = path.resolve(projectRoot)
   const resolvedDesktopDir = path.resolve(desktopDir)
   const isWindows = platform === 'win32'
+
+  await fsp.mkdir(resolvedDesktopDir, { recursive: true })
+  await removeLegacyDesktopLaunchers(resolvedDesktopDir, platform)
+
   const launchers = isWindows
     ? [
         {
-          name: 'Astroncode.cmd',
+          name: `${DESKTOP_CLI_LAUNCHER_NAME}.cmd`,
           content: buildDesktopCliLauncher(resolvedProjectRoot, platform),
         },
         {
@@ -93,7 +139,7 @@ export async function ensureAstronDesktopLaunchers({
       ]
     : [
         {
-          name: 'Astroncode.command',
+          name: `${DESKTOP_CLI_LAUNCHER_NAME}.command`,
           content: buildDesktopCliLauncher(resolvedProjectRoot, platform),
         },
         {
@@ -101,8 +147,6 @@ export async function ensureAstronDesktopLaunchers({
           content: buildDesktopGuiLauncher(resolvedProjectRoot, platform),
         },
       ]
-
-  await fsp.mkdir(resolvedDesktopDir, { recursive: true })
 
   const writtenFiles = await Promise.all(
     launchers.map(async launcher => {
@@ -114,6 +158,10 @@ export async function ensureAstronDesktopLaunchers({
       return filePath
     }),
   )
+
+  if (!isWindows) {
+    maybeOpenDesktopDir(resolvedDesktopDir)
+  }
 
   return {
     desktopDir: resolvedDesktopDir,

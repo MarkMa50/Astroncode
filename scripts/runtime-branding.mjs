@@ -9,10 +9,16 @@ import {
   ASTRONCODE_NAME,
   ASTRONCODE_VERSION,
 } from './astron-meta.mjs'
+import {
+  buildRuntimeWelcomeFunctionSource,
+  getRecentActivityFeedCopy,
+} from '../src/utils/logoPageCopy.mjs'
 
 const LOCAL_BUILD_LABEL = `local ${ASTRONCODE_NAME} build`
 const BROWSER_CONTROL_NAME = `${ASTRONCODE_NAME} Browser Control`
 const DESKTOP_NAME = `${ASTRONCODE_NAME} Desktop`
+const RECENT_ACTIVITY_COPY = getRecentActivityFeedCopy(true)
+const RECENT_ACTIVITY_EMPTY_COPY = getRecentActivityFeedCopy(false)
 const WORDMARK_LINES = [
   '╔═╗╔═╗╔╦╗╦═╗╔═╗╔╗╔',
   '╠═╣╚═╗ ║ ╠╦╝║ ║║║║',
@@ -38,7 +44,7 @@ function createRuntimeWelcomeArt() {
 }
 
 const RUNTIME_WELCOME_ART = createRuntimeWelcomeArt()
-const RUNTIME_WELCOME_EMPTY = 'function FF8(q){return""}'
+const RUNTIME_WELCOME_EMPTY = buildRuntimeWelcomeFunctionSource()
 const RUNTIME_NOTICE_DISABLED = 'async function lcY(){return null}'
 const UPSTREAM_BUNDLE_VERSION = '2.1.88'
 const EARLY_INPUT_WINDOWS_GUARD_FROM =
@@ -180,6 +186,13 @@ export const brandingReplacements = [
   ['Check the AstronCode changelog for updates', `Check the ${ASTRONCODE_NAME} changelog for updates`],
   ['Unable to fetch latest claude-cli-internal commits', `Unable to fetch latest ${ASTRONCODE_NAME} internal commits`],
   ['Unable to fetch latest astroncode internal commits', `Unable to fetch latest ${ASTRONCODE_NAME} internal commits`],
+  ['Recent activity', RECENT_ACTIVITY_COPY.title],
+  ['/resume for more', RECENT_ACTIVITY_COPY.footer ?? '> /resume'],
+  ['No recent activity', RECENT_ACTIVITY_EMPTY_COPY.emptyMessage],
+  ['Check the Claude Code changelog for updates', ''],
+  ['/release-notes for more', ''],
+  ['Unable to fetch latest claude-cli-internal commits', ''],
+  ['What\'s new [ANT-ONLY: Latest CC commits]', "What's new [internal build: latest commits]"],
   ['Share Claude Code with friends', `Share ${ASTRONCODE_NAME} with friends`],
   ['Share AstronCode with friends', `Share ${ASTRONCODE_NAME} with friends`],
   ['Share Atroncode with friends', `Share ${ASTRONCODE_NAME} with friends`],

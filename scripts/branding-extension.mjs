@@ -87,19 +87,15 @@ export const additionalBrandingPatterns = [
   // === URL REPLACEMENTS ===
   {
     pattern: /https:\/\/code\.claude\.com\/docs\/en\/[a-z-]+/g,
-    replace: 'https://docs.astroncode.local/help',
-  },
-  {
-    pattern: /https:\/\/claude\.ai\/[a-z\/-]+/g,
-    replace: 'https://astroncode.local/settings',
+    replace: 'https://github.com/MarkMa50/Astroncode----src',
   },
   {
     pattern: /https:\/\/support\.claude\.com\/[a-z\/-]+/g,
-    replace: 'https://support.astroncode.local/help',
+    replace: 'https://github.com/MarkMa50/Astroncode----src/issues',
   },
   {
     pattern: /https:\/\/platform\.claude\.com\/[a-z\/-]+/g,
-    replace: 'https://platform.astroncode.local/settings',
+    replace: 'https://github.com/MarkMa50/Astroncode----src',
   },
   {
     pattern:
@@ -172,13 +168,12 @@ export const projectGuidancePatterns = [
 ]
 
 // === STAR MASCOT REPLACEMENT ===
-// Replace the simple Clawd mascot with Atroncode Star mascot
+// Replace the simple Clawd mascot with the Astroncode Star mascot
 
-// Atroncode Star - a pixel star mascot with glowing core
-// Design: 5-pointed star with animated core, representing Atroncode's "A" (Astron = Star)
-const NEW_O0Y = `O0Y={default:{r1L:"      ★★★★★      ",r1E:"    ★★     ★★    ",r1R:"   ★   ◉◉◉   ★   ",r2L:"  ★     ║     ★  ",r2R:" ★  ╔═══════╗  ★ "},"look-left":{r1L:"      ★★★★★      ",r1E:"    ★★     ★★    ",r1R:"   ★  ◉◉◉    ★   ",r2L:"  ★     ║     ★  ",r2R:" ★  ╔═══════╗  ★ "},"look-right":{r1L:"      ★★★★★      ",r1E:"    ★★     ★★    ",r1R:"   ★   ◉◉◉  ★    ",r2L:"  ★     ║     ★  ",r2R:" ★  ╔═══════╗  ★ "},"arms-up":{r1L:"    ★★★★★★★★    ",r1E:"   ★  ◉◉◉  ★   ",r1R:"  ★    ║    ★  ",r2L:" ★  ╔═══════╗  ★ ",r2R:"★   ║ATRON║   ★"}}`;
+// Astroncode Star - a pixel star mascot with an animated core, matching the Astroncode identity.
+const NEW_O0Y = `O0Y={default:{r1L:"      ★★★★★      ",r1E:"    ★★     ★★    ",r1R:"   ★   ◉◉◉   ★   ",r2L:"  ★     ║     ★  ",r2R:" ★  ╔═══════╗  ★ "},"look-left":{r1L:"      ★★★★★      ",r1E:"    ★★     ★★    ",r1R:"   ★  ◉◉◉    ★   ",r2L:"  ★     ║     ★  ",r2R:" ★  ╔═══════╗  ★ "},"look-right":{r1L:"      ★★★★★      ",r1E:"    ★★     ★★    ",r1R:"   ★   ◉◉◉  ★    ",r2L:"  ★     ║     ★  ",r2R:" ★  ╔═══════╗  ★ "},"arms-up":{r1L:"    ★★★★★★★★    ",r1E:"   ★  ◉◉◉  ★   ",r1R:"  ★    ║    ★  ",r2L:" ★  ╔═══════╗  ★ ",r2R:"★  ║ASTRON║  ★"}}`;
 
-const NEW_W0Y = `w0Y={default:" ★  ║ATRON║  ★ ","look-left":" ★  ║ATRON║  ★ ","look-right":" ★  ║ATRON║  ★ ","arms-up":"    ╚═══════╝    "}`;
+const NEW_W0Y = `w0Y={default:" ★  ║ASTRON║  ★ ","look-left":" ★  ║ASTRON║  ★ ","look-right":" ★  ║ASTRON║  ★ ","arms-up":"    ╚═══════╝    "}`;
 
 export const clawdReplacementRules = [
   // Replace complete O0Y object
@@ -204,7 +199,7 @@ export const modelNoticeRules = [
   
   // Model-specific messages
   ['is not available for your account', 'is not available in this configuration'],
-  ['https://code.claude.com/docs/en/model-config#extended-context-with-1m', 'https://docs.astroncode.local/model-config'],
+  ['https://code.claude.com/docs/en/model-config#extended-context-with-1m', 'https://github.com/MarkMa50/Astroncode----src'],
 ]
 
 // === MODEL NOTICE PATTERNS ===
@@ -253,10 +248,10 @@ export const subscriptionRules = [
   ['Login method pre-selected: Subscription Plan', 'Login method pre-selected: Local Provider'],
   ['Login method pre-selected: API Usage Billing', 'Login method pre-selected: API Billing'],
   ['Teleport requires a Claude.ai account', 'Teleport requires local provider credentials'],
-  ['Your Claude Pro/Max subscription will be used by Claude Code', 'Your local provider credentials will be used by Atroncode'],
+  ['Your Claude Pro/Max subscription will be used by Claude Code', 'Your local provider credentials will be used by Astroncode'],
   ['forceLoginMethod: "claudeai" for Claude Pro/Max', 'forceLoginMethod: "local" for local provider'],
   ['"claudeai" for Claude Pro/Max, "console" for Console billing', '"local" for local provider, "api" for API billing'],
-  ['Claude Code web sessions require authentication with a Claude.ai account', 'Atroncode sessions require local provider authentication'],
+  ['Claude Code web sessions require authentication with a Claude.ai account', 'Astroncode sessions require local provider authentication'],
   ['API key authentication is not sufficient', 'API key authentication may not be sufficient'],
   ['not Console', 'not API billing'],
 ]
@@ -265,30 +260,24 @@ export const subscriptionRules = [
 export const consoleRules = [
   ['Anthropic Console', 'Local Provider Console'],
   ['Anthropic API key', 'Provider API key'],
-  ['anthropic-version', 'provider-version'],
-  ['anthropic-beta', 'provider-beta'],
-  ['@anthropic-ai/sdk', '@astroncode/sdk'],
   ['anthropics/claude-code-action', 'astroncode/action'],
   ['anthropics/claude-cli', 'astroncode/cli'],
 ]
 
 // === URL REPLACEMENTS (Extended) ===
 export const extendedUrlRules = [
-  ['https://code.claude.com', 'https://docs.astroncode.local'],
-  ['https://support.claude.com', 'https://support.astroncode.local'],
-  ['https://platform.claude.com', 'https://platform.astroncode.local'],
-  ['https://docs.claude.com', 'https://docs.astroncode.local'],
-  ['https://claude.ai/chrome', 'https://astroncode.local/extensions'],
-  ['https://claude.ai/upgrade/max', 'https://astroncode.local/settings'],
-  ['https://claude.ai/download', 'https://astroncode.local/download'],
+  ['https://code.claude.com', 'https://github.com/MarkMa50/Astroncode----src'],
+  ['https://support.claude.com', 'https://github.com/MarkMa50/Astroncode----src/issues'],
+  ['https://platform.claude.com', 'https://github.com/MarkMa50/Astroncode----src'],
+  ['https://docs.claude.com', 'https://github.com/MarkMa50/Astroncode----src'],
 ]
 
 // === GITHUB/REPO REFERENCES ===
 export const githubRules = [
   ['github.com/anthropics', 'github.com/astroncode'],
-  ['anthropics/claude-code', 'astroncode/atroncode'],
-  ['claude-code-action', 'atroncode-action'],
-  ['claude-cli-internal', 'atroncode-internal'],
+  ['anthropics/claude-code', 'astroncode/astroncode'],
+  ['claude-code-action', 'astroncode-action'],
+  ['claude-cli-internal', 'astroncode-internal'],
 ]
 
 // === MODEL ALIASES (User-facing) ===
@@ -324,11 +313,6 @@ export const extendedPatterns = [
   {
     pattern: /github\.com\/anthropics\/[^"\s]+/gi,
     replace: 'github.com/astroncode/repo',
-  },
-  // Docs URLs
-  {
-    pattern: /https:\/\/[^"\s]*claude\.[^"\s]+/gi,
-    replace: 'https://docs.astroncode.local',
   },
 ]
 
@@ -367,29 +351,32 @@ export const moreModelPatterns = [
     pattern: /the Claude (Opus|Sonnet|Haiku)/gi,
     replace: 'the $1',
   },
-  {
-    pattern: /\bAnthropic\b/g,
-    replace: 'Astron',
-  },
+  // NOTE: Global /\bAnthropic\b/ removed — see js-ast-strings.mjs for the
+  // AST-safe catch-all that replaces it without hitting HTTP headers or SDK names.
 ]
 
 
 
 // === FIX RULES ===
 export const fixRules = [
-  ['astroncode/claude-code', 'astroncode/atroncode'],
-  ['astroncode/claude-cli', 'astroncode/atroncode'],
-  ['atroncode-action', 'atroncode-action'],
+  ['astroncode/claude-code', 'astroncode/astroncode'],
+  ['astroncode/claude-cli', 'astroncode/astroncode'],
   ['Opus now defaults to 1M context', 'New model available with extended context'],
   ['your local providerPro/Max subscription', 'your local provider subscription'],
   ['local providerPro/Max', 'local provider'],
   // Identity strings
-  ["You are Claude Code, Anthropic's official CLI for Claude", "You are Astroncode, Astron's official CLI for Claude"],
-  ["You are an agent for Claude Code, Anthropic's official CLI for Claude", "You are an agent for Astroncode, Astron's official CLI for Claude"],
-  ["You are a file search specialist for Claude Code, Anthropic's official CLI for Claude", "You are a file search specialist for Astroncode, Astron's official CLI for Claude"],
+  ["You are Claude Code, Anthropic's official CLI for Claude", "You are Astroncode, Astron's local coding assistant"],
+  ["You are Astroncode, Anthropic's official CLI for Claude", "You are Astroncode, Astron's local coding assistant"],
+  ["You are Astroncode, Astron's official CLI for Claude", "You are Astroncode, Astron's local coding assistant"],
+  ["You are an agent for Claude Code, Anthropic's official CLI for Claude", "You are an agent for Astroncode, Astron's local coding assistant"],
+  ["You are an agent for Astroncode, Anthropic's official CLI for Claude", "You are an agent for Astroncode, Astron's local coding assistant"],
+  ["You are an agent for Astroncode, Astron's official CLI for Claude", "You are an agent for Astroncode, Astron's local coding assistant"],
+  ["You are a file search specialist for Claude Code, Anthropic's official CLI for Claude", "You are a file search specialist for Astroncode, Astron's local coding assistant"],
+  ["You are a file search specialist for Astroncode, Anthropic's official CLI for Claude", "You are a file search specialist for Astroncode, Astron's local coding assistant"],
+  ["You are a file search specialist for Astroncode, Astron's official CLI for Claude", "You are a file search specialist for Astroncode, Astron's local coding assistant"],
   ["You are Claude Code, an AI assistant", "You are Astroncode, an AI assistant"],
-  ["agent for Claude Code, Anthropic's official CLI", "agent for Astroncode, Astron's official CLI"],
-  ["specialist for Claude Code, Anthropic's official CLI", "specialist for Astroncode, Astron's official CLI"],
+  ["agent for Claude Code, Anthropic's official CLI", "agent for Astroncode, Astron's local coding assistant"],
+  ["specialist for Claude Code, Anthropic's official CLI", "specialist for Astroncode, Astron's local coding assistant"],
   // User-facing help strings
   ['/help: Get help with using Claude Code', '/help: Get help with using Astroncode'],
   ['problem with Claude Code', 'problem with Astroncode'],
@@ -400,7 +387,7 @@ export const fixRules = [
 export const fixPatterns = [
   {
     pattern: /\/claude-[a-z]+/gi,
-    replace: '/atroncode',
+    replace: '/astroncode',
   },
   {
     pattern: /your local providerPro/gi,
@@ -422,8 +409,3 @@ export const fixPatterns = [
     replace: 'Astroncode, an AI assistant',
   },
 ]
-
-// Merge function to combine with main branding rules
-export function getExtendedBrandingRules(baseRules) {
-  return [...baseRules, ...additionalBrandingRules, ...additionalBrandingPatterns]
-}

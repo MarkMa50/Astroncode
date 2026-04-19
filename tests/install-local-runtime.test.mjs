@@ -13,18 +13,29 @@ test('ensureAstronDesktopLaunchers writes CLI and GUI desktop launchers', async 
   const desktopDir = await mkdtemp(path.join(os.tmpdir(), 'astron-desktop-'))
   const projectRoot = 'C:\\Users\\markw\\astroncode'
 
+  await writeFile(path.join(desktopDir, 'Astroncode.cmd'), 'legacy cli', 'utf8')
+  await writeFile(path.join(desktopDir, 'Astroncode.command'), 'legacy mac cli', 'utf8')
+  await writeFile(path.join(desktopDir, 'Start Astroncode.command'), 'legacy start', 'utf8')
+
   const result = await ensureAstronDesktopLaunchers({
     projectRoot,
     desktopDir,
   })
 
-  const cliLauncher = await readFile(path.join(desktopDir, 'Astroncode.cmd'), 'utf8')
+  const cliLauncher = await readFile(path.join(desktopDir, 'Astroncode CLI.cmd'), 'utf8')
   const guiLauncher = await readFile(path.join(desktopDir, 'Astroncode GUI.vbs'), 'utf8')
 
   assert.equal(result.desktopDir, desktopDir)
   assert.equal(result.launchers.length, 2)
+  assert.deepEqual(
+    result.launchers.map(launcher => launcher.name),
+    ['Astroncode CLI.cmd', 'Astroncode GUI.vbs'],
+  )
   assert.match(cliLauncher, /astroncode\.ps1/)
   assert.match(guiLauncher, /astroncode-gui\.ps1/)
+  await assert.rejects(() => readFile(path.join(desktopDir, 'Astroncode.cmd'), 'utf8'))
+  await assert.rejects(() => readFile(path.join(desktopDir, 'Astroncode.command'), 'utf8'))
+  await assert.rejects(() => readFile(path.join(desktopDir, 'Start Astroncode.command'), 'utf8'))
 })
 
 test('ensureAstronDesktopLaunchers writes mac command launchers', async () => {
@@ -37,11 +48,12 @@ test('ensureAstronDesktopLaunchers writes mac command launchers', async () => {
     platform: 'darwin',
   })
 
-  const cliLauncher = await readFile(path.join(desktopDir, 'Astroncode.command'), 'utf8')
+  const cliLauncher = await readFile(path.join(desktopDir, 'Astroncode CLI.command'), 'utf8')
   const guiLauncher = await readFile(path.join(desktopDir, 'Astroncode GUI.command'), 'utf8')
 
   assert.equal(result.launchers.length, 2)
   assert.match(cliLauncher, /^#!\/bin\/sh/m)
+  assert.match(cliLauncher, /exec sh ".*astroncode\.sh"/)
   assert.match(guiLauncher, /astroncode-gui\.sh/)
 })
 
@@ -67,11 +79,12 @@ test('runAstronInstall repairs shims and desktop launchers and reports provider 
   })
 
   const shimFile = await readFile(path.join(shimDir, 'astroncode.cmd'), 'utf8')
-  const desktopFile = await readFile(path.join(desktopDir, 'Astroncode.cmd'), 'utf8')
+  const desktopFile = await readFile(path.join(desktopDir, 'Astroncode CLI.cmd'), 'utf8')
 
   assert.equal(result.provider.ready, true)
   assert.equal(result.provider.mode, 'token')
   assert.match(result.nodeVersion, /^v/)
   assert.match(shimFile, /astroncode\.ps1/)
   assert.match(desktopFile, /astroncode\.ps1/)
+  assert.equal(result.desktopResult.launchers[0].name, 'Astroncode CLI.cmd')
 })
